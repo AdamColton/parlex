@@ -26,9 +26,9 @@ const grammarRules = `
                 -> Array
                 -> Object
   Object        -> { ObjectDef }
-  ObjectDef     -> Row , ObjectDef
-                -> Row
-  Row           -> Key : Value
+  ObjectDef     -> KeyVal , ObjectDef
+                -> KeyVal
+  KeyVal        -> Key : Value
   Key           -> string
   Array         -> [ ArrayContents ]
   ArrayContents -> Value , ArrayContents
@@ -49,7 +49,7 @@ var reducer = tree.Reducer{
 	"Value":         tree.PromoteSingleChild,
 	"ObjectDef":     reduceList,
 	"Object":        reduceListWrapper,
-	"Row":           tree.RemoveChild(1), // remove :
+	"KeyVal":        tree.RemoveChild(1), // remove :
 	"Key":           tree.PromoteChildValue(0),
 	"ArrayContents": reduceList,
 	"Array":         reduceListWrapper,

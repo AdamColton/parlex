@@ -24,6 +24,9 @@ func (r Reducer) Add(symbol parlex.Symbol, reduction Reduction) {
 // with a stack. Though often it can be avoided by adding the reduction logic
 // further up the tree.
 func (r Reducer) Reduce(node parlex.ParseNode) parlex.ParseNode {
+	if node == nil {
+		return node
+	}
 	return r.RawReduce(node)
 }
 
