@@ -30,41 +30,51 @@ func TopDown(grmr parlex.Grammar) (*TD, error) {
 func (t *TD) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	var pn *tree.PN
 	if nts := t.NonTerminals(); len(nts) > 0 {
-		pn, _ = t.accept(nts[0], 0, len(lexemes), lexemes)
+		op := &tdOp{
+			TD:  t,
+			lxs: lexemes,
+		}
+		pn, _ = op.accept(nts[0], 0, true)
 	}
 	return pn
+}
+
+// top-down parse operation
+type tdOp struct {
+	*TD
+	lxs []parlex.Lexeme
 }
 
 // Tries to accept the lexemes into the grammper from a starting symbol and
 // position. If end == -1, then it will return the first accepting rule. If
 // end > -1, it the rule must end on that position. This is used at the outer
 // most level to assure accept consumes all the lexemes
-func (t *TD) accept(symbol parlex.Symbol, cur, end int, lxs []parlex.Lexeme) (*tree.PN, int) {
-	if cur >= len(lxs) {
-		return nil, cur
+func (op *tdOp) accept(symbol parlex.Symbol, pos int, all bool) (*tree.PN, int) {
+	if pos >= len(op.lxs) {
+		return nil, pos
 	}
-	productions := t.Productions(symbol)
+	productions := op.Productions(symbol)
 	if productions == nil {
-		if cur < len(lxs) && symbol == lxs[cur].Kind() {
+		if pos < len(op.lxs) && symbol == op.lxs[pos].Kind() {
 			return &tree.PN{
-				Lexeme: lxs[cur],
-			}, cur + 1
+				Lexeme: op.lxs[pos],
+			}, pos + 1
 		}
 	}
 
 	for _, prod := range productions {
 		children := make([]*tree.PN, len(prod))
 		accepts := true
-		tc := cur
+		tc := pos
 		for i, symbol := range prod {
-			if pn, c := t.accept(symbol, tc, -1, lxs); pn != nil {
+			if pn, c := op.accept(symbol, tc, false); pn != nil {
 				children[i], tc = pn, c
 			} else {
 				accepts = false
 				break
 			}
 		}
-		if accepts && (end == -1 || end == tc) {
+		if accepts && (!all || tc == len(op.lxs)) {
 			return &tree.PN{
 				Lexeme: &parlex.L{K: symbol},
 				C:      children,
@@ -72,5 +82,5 @@ func (t *TD) accept(symbol parlex.Symbol, cur, end int, lxs []parlex.Lexeme) (*t
 		}
 	}
 
-	return nil, cur
+	return nil, pos
 }
