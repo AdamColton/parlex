@@ -31,56 +31,91 @@ func (t *TD) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	var pn *tree.PN
 	if nts := t.NonTerminals(); len(nts) > 0 {
 		op := &tdOp{
-			TD:  t,
-			lxs: lexemes,
+			TD:   t,
+			lxs:  lexemes,
+			memo: make(map[ParseOp]acceptResp),
 		}
-		pn, _ = op.accept(nts[0], 0, true)
+		pn = op.accept(ParseOp{nts[0], 0}, true).PN
 	}
 	return pn
+}
+
+// ParseOp represents a parser operation of accepting a symbol at a position.
+type ParseOp struct {
+	parlex.Symbol
+	Pos int
+}
+
+type acceptResp struct {
+	*tree.PN
+	end int
 }
 
 // top-down parse operation
 type tdOp struct {
 	*TD
-	lxs []parlex.Lexeme
+	lxs  []parlex.Lexeme
+	memo map[ParseOp]acceptResp
+}
+
+func (op *tdOp) accept(pop ParseOp, all bool) acceptResp {
+	if resp, ok := op.memo[pop]; ok {
+		return resp
+	}
+	resp := op.tryAccept(pop, all)
+	op.memo[pop] = resp
+	return resp
 }
 
 // Tries to accept the lexemes into the grammper from a starting symbol and
 // position. If end == -1, then it will return the first accepting rule. If
 // end > -1, it the rule must end on that position. This is used at the outer
 // most level to assure accept consumes all the lexemes
-func (op *tdOp) accept(symbol parlex.Symbol, pos int, all bool) (*tree.PN, int) {
-	if pos >= len(op.lxs) {
-		return nil, pos
+func (op *tdOp) tryAccept(pop ParseOp, all bool) acceptResp {
+	if pop.Pos >= len(op.lxs) {
+		return acceptResp{
+			PN:  nil,
+			end: pop.Pos,
+		}
 	}
-	productions := op.Productions(symbol)
+
+	productions := op.Productions(pop.Symbol)
 	if productions == nil {
-		if pos < len(op.lxs) && symbol == op.lxs[pos].Kind() {
-			return &tree.PN{
-				Lexeme: op.lxs[pos],
-			}, pos + 1
+		if pop.Pos < len(op.lxs) && pop.Symbol == op.lxs[pop.Pos].Kind() {
+			return acceptResp{
+				PN: &tree.PN{
+					Lexeme: op.lxs[pop.Pos],
+				},
+				end: pop.Pos + 1,
+			}
 		}
 	}
 
 	for _, prod := range productions {
 		children := make([]*tree.PN, len(prod))
 		accepts := true
-		tc := pos
+		pos := pop.Pos
 		for i, symbol := range prod {
-			if pn, c := op.accept(symbol, tc, false); pn != nil {
-				children[i], tc = pn, c
+			if resp := op.accept(ParseOp{symbol, pos}, false); resp.PN != nil {
+				children[i], pos = resp.PN, resp.end
 			} else {
 				accepts = false
 				break
 			}
 		}
-		if accepts && (!all || tc == len(op.lxs)) {
-			return &tree.PN{
-				Lexeme: &parlex.L{K: symbol},
-				C:      children,
-			}, tc
+		if accepts && (!all || pos == len(op.lxs)) {
+			return acceptResp{
+				PN: &tree.PN{
+					Lexeme: &parlex.L{K: pop.Symbol},
+					C:      children,
+				},
+				end: pos,
+			}
 		}
 	}
 
-	return nil, pos
+	return acceptResp{
+		PN:  nil,
+		end: pop.Pos,
+	}
 }
