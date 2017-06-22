@@ -28,16 +28,16 @@ func TopDown(grmr parlex.Grammar) (*TD, error) {
 
 // Parse implements parlex.Parser
 func (t *TD) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
-	var pn *tree.PN
-	if nts := t.NonTerminals(); len(nts) > 0 {
-		op := &tdOp{
-			TD:   t,
-			lxs:  lexemes,
-			memo: make(map[ParseOp]acceptResp),
-		}
-		pn = op.accept(ParseOp{nts[0], 0}, true).PN
+	nts := t.NonTerminals()
+	if len(nts) == 0 {
+		return nil
 	}
-	return pn
+	op := &tdOp{
+		TD:   t,
+		lxs:  lexemes,
+		memo: make(map[ParseOp]acceptResp),
+	}
+	return op.accept(ParseOp{nts[0], 0}, true).PN
 }
 
 // ParseOp represents a parser operation of accepting a symbol at a position.

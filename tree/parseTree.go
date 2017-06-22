@@ -119,3 +119,14 @@ func (p *PN) sliceReq() int {
 	}
 	return r
 }
+
+func (p *PN) Size() int {
+	if p == nil {
+		return 0
+	}
+	size := 1
+	for _, child := range p.C {
+		size += child.Size()
+	}
+	return size
+}
