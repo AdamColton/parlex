@@ -4,6 +4,8 @@ package parlex
 func Run(input string, lexer Lexer, parser Parser, reducer Reducer) ParseNode {
 	lexemes := lexer.Lex(input)
 	tree := parser.Parse(lexemes)
-	tree = reducer.Reduce(tree)
+	if reducer != nil {
+		tree = reducer.Reduce(tree)
+	}
 	return tree
 }

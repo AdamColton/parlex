@@ -38,12 +38,12 @@ func TestReduce(t *testing.T) {
 	assert.NotNil(t, pn)
 
 	reducer := Reducer{
-		parlex.Symbol("T"): ReduceSingleChild,
-		parlex.Symbol("E"): ReduceSingleChild,
+		parlex.Symbol("T"): PromoteSingleChild,
+		parlex.Symbol("E"): PromoteSingleChild,
 		parlex.Symbol("P"): func(node *PN) {
-			PromoteChild(node, 1)
+			node.PromoteChild(1)
 		},
 	}
-	reducer.Reduce(pn)
+	pn = reducer.Reduce(pn).(*PN)
 	fmt.Println(pn)
 }

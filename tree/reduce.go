@@ -51,6 +51,7 @@ func (r Reducer) RawReduce(node parlex.ParseNode) *PN {
 	if reduction := r[cp.Kind()]; reduction != nil {
 		reduction(cp)
 	}
+
 	return cp
 }
 
@@ -64,7 +65,11 @@ func (p *PN) PromoteChild(cIdx int) {
 	}
 	if cIdx >= 0 && cIdx < l {
 		p.Lexeme = p.C[cIdx].Lexeme
-		p.C = p.C[cIdx].C
+		tail := p.C[cIdx].C
+		if cIdx+1 < l {
+			tail = append(tail, p.C[cIdx+1:]...)
+		}
+		p.C = append(p.C[0:cIdx], tail...)
 		for _, c := range p.C {
 			c.P = p
 		}
