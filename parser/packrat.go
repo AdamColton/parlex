@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/tree"
 )
@@ -25,6 +24,10 @@ func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	if len(nts) == 0 {
 		return nil
 	}
+	nonterm := make(map[parlex.Symbol]bool, len(nts))
+	for _, nt := range nts {
+		nonterm[nt] = true
+	}
 	op := &prOp{
 		grmr:     p.Grammar,
 		lxms:     lexemes,
@@ -32,6 +35,7 @@ func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 		markers:  make(map[treeMarker][]treeDef),     // maps marker to treeDef containing that marker
 		partials: make(map[treeMarker][]treePartial), // maps a marker to a treePartial looking for that marker
 		queued:   make(map[treeMarker]bool),
+		nonterm:  nonterm,
 	}
 
 	start := treeMarker{
@@ -48,6 +52,7 @@ func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	var accept treeKey
 	accept.symbol = nts[0]
 	accept.end = len(lexemes)
+
 	return op.memo[accept].toPN(lexemes, op.memo)
 }
 
@@ -65,6 +70,7 @@ func (op *prOp) addProds(marker treeMarker) {
 		tp.treeMarker = marker
 		tp.prod = prod
 		tp.priority = pri
+
 		op.addPartial(tm, tp)
 	}
 }
@@ -76,6 +82,7 @@ type prOp struct {
 	markers  map[treeMarker][]treeDef
 	partials map[treeMarker][]treePartial
 	queued   map[treeMarker]bool
+	nonterm  map[parlex.Symbol]bool
 	stack    *updater
 }
 
@@ -121,13 +128,27 @@ func (u *updater) update(op *prOp) {
 
 	if ln+1 == len(tp.prod) {
 		op.addToMemo(tp.treeDef)
-	} else {
-		tm := treeMarker{
-			symbol: tp.prod[ln+1],
-			start:  tp.end,
-		}
-		op.addPartial(tm, tp)
+		return
 	}
+
+	tm := treeMarker{
+		symbol: tp.prod[ln+1],
+		start:  tp.end,
+	}
+	if tp.end < len(op.lxms) && tm.symbol == op.lxms[tp.end].Kind() {
+		var td treeDef
+		td.treeMarker = tm
+		td.end = tm.start + 1
+		op.addToMemo(td)
+		(&updater{
+			partial: tp,
+			key:     td.treeKey,
+		}).update(op)
+		return
+	}
+
+	op.addPartial(tm, tp)
+
 }
 
 func (op *prOp) addToMemo(td treeDef) {
@@ -138,23 +159,46 @@ func (op *prOp) addToMemo(td treeDef) {
 		for _, tp := range op.partials[td.treeMarker] {
 			op.push(tp, td.treeKey)
 		}
-	} else if old.priority > td.priority {
+	} else if td.comparePriority(&old, op) == 1 {
 		op.memo[td.treeKey] = td
 	}
+}
+
+//  1: td > td2    which actually means td.priority < td2.priority
+//  0: td == td2   because 0 is the highest priority
+// -1: td < td2
+func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
+	if td.priority != td2.priority {
+		if td.priority < td2.priority {
+			return 1
+		}
+		return -1
+	}
+	// they should both have the same number of children - equal priority means
+	// equal production
+	for i, ck := range td.children {
+		c1 := op.memo[ck]
+		c2 := op.memo[td2.children[i]]
+		p := c1.comparePriority(&c2, op)
+		if p != 0 {
+			return p
+		}
+	}
+	return 0
 }
 
 func (op *prOp) addPartial(tm treeMarker, tp treePartial) {
 	if tm.start >= len(op.lxms) {
 		return
 	}
-	if tm.symbol == op.lxms[tm.start].Kind() {
+	if op.nonterm[tm.symbol] {
+		op.partials[tm] = append(op.partials[tm], tp)
+	} else if tm.symbol == op.lxms[tm.start].Kind() {
 		var td treeDef
 		td.treeMarker = tm
 		td.end = tm.start + 1
 		op.addToMemo(td)
 	}
-
-	op.partials[tm] = append(op.partials[tm], tp)
 
 	for _, td := range op.markers[tm] {
 		op.push(tp, td.treeKey)

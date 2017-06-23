@@ -69,7 +69,7 @@ func (a *Analytics) Terminal(s parlex.Symbol) bool {
 func (a *Analytics) HasFirst(symbol parlex.Symbol, first parlex.Symbol) bool {
 	nonterms, ok := a.first2nonterms[first]
 	if !ok {
-		return nonterm == first
+		return symbol == first
 	}
-	return nonterms[nonterm]
+	return nonterms[symbol]
 }

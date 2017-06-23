@@ -113,10 +113,10 @@ func TestLeftRecursion(t *testing.T) {
 		expected, _ := tree.New(`
       E {
         E {
-          int: '5'
-        }
-        op: '*'
-        E {
+          E {
+            int: '5'
+          }
+          op: '*'
           E {
             (: '('
             E {
@@ -130,10 +130,10 @@ func TestLeftRecursion(t *testing.T) {
             }
             ): ')'
           }
-          op: '*'
-          E {
-            int: '3'
-          }
+        }
+        op: '*'
+        E {
+          int: '3'
         }
       }
     `)
