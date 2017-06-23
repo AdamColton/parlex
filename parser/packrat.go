@@ -18,6 +18,8 @@ func Packrat(grmr parlex.Grammar) *PR {
 	}
 }
 
+// Parse fulfills the parlex.Parser. The Packrat parser will try to parse the
+// lexemes.
 func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	nts := p.Grammar.NonTerminals()
 	if len(nts) == 0 {
@@ -82,14 +84,10 @@ type treeMarker struct {
 	start  int
 }
 
-func (tm treeMarker) String() string { return fmt.Sprintf("M(%s %d)", tm.symbol, tm.start) }
-
 type treeKey struct {
 	treeMarker
 	end int
 }
-
-func (tk treeKey) String() string { return fmt.Sprintf("K(%s %d-%d)", tk.symbol, tk.start, tk.end) }
 
 type treeDef struct {
 	treeKey
@@ -97,17 +95,9 @@ type treeDef struct {
 	priority int
 }
 
-func (td treeDef) String() string {
-	return fmt.Sprintf("D(%s %d-%d %d)", td.symbol, td.start, td.end, len(td.children))
-}
-
 type treePartial struct {
 	treeDef
 	prod parlex.Production
-}
-
-func (tp treePartial) String() string {
-	return fmt.Sprintf("D(%s %d-%d %d [%s])", tp.symbol, tp.start, tp.end, len(tp.children), tp.prod.String())
 }
 
 // updaters form a linked-list of things to process. An updater takes the

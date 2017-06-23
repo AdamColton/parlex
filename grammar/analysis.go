@@ -4,11 +4,13 @@ import (
 	"github.com/adamcolton/parlex"
 )
 
+// Analytics provides an analysis of a grammar
 type Analytics struct {
 	first2nonterms map[parlex.Symbol]map[parlex.Symbol]bool
 	nonterm2firsts map[parlex.Symbol][]parlex.Symbol
 }
 
+// Analyse a grammar
 func Analyse(g parlex.Grammar) *Analytics {
 	a := &Analytics{
 		first2nonterms: make(map[parlex.Symbol]map[parlex.Symbol]bool),
@@ -56,15 +58,18 @@ func firsts(s parlex.Symbol, g parlex.Grammar, a *Analytics, done map[parlex.Sym
 	return fs
 }
 
+// Terminal returns true if the symbol is a terminal symbol
 func (a *Analytics) Terminal(s parlex.Symbol) bool {
 	_, nonterm := a.nonterm2firsts[s]
 	return !nonterm
 }
 
-func (a *Analytics) HasFirst(nonterm parlex.Symbol, first parlex.Symbol) bool {
+// HasFirst returns true if first could be the first symbol in a tree with root
+// symbol
+func (a *Analytics) HasFirst(symbol parlex.Symbol, first parlex.Symbol) bool {
 	nonterms, ok := a.first2nonterms[first]
 	if !ok {
-		return false
+		return nonterm == first
 	}
 	return nonterms[nonterm]
 }

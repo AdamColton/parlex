@@ -120,6 +120,7 @@ func (p *PN) sliceReq() int {
 	return r
 }
 
+// Size counts the number of nodes in a tree
 func (p *PN) Size() int {
 	if p == nil {
 		return 0
