@@ -19,10 +19,11 @@ const lexerRules = `
   ) /\)/
 `
 const grammarRules = `
-  E  -> E op1 E
-  	 -> E op2 E
-     -> ( E )
-     -> number
+  E -> E op2 E
+    -> E op1 E
+    -> number
+    -> P
+  P -> ( E )
 `
 
 var reducer = tree.Reducer{
@@ -34,6 +35,9 @@ var reducer = tree.Reducer{
 				node.PromoteChild(1)
 			}
 		}
+	},
+	"P": func(node *tree.PN) {
+		*node = *(node.C[1])
 	},
 }
 
@@ -52,17 +56,22 @@ func main() {
 
 	p := parser.Packrat(grmr)
 
-	tr := parlex.Run("1+2+3", lxr, p, reducer)
-	fmt.Println(tr)
-	fmt.Println(eval(tr))
-
-	tr = parlex.Run("1*2+3", lxr, p, reducer)
-	fmt.Println(tr)
-	fmt.Println(eval(tr))
-
-	tr = parlex.Run("1+2*3", lxr, p, reducer)
-	fmt.Println(tr)
-	fmt.Println(eval(tr))
+	ok := true
+	expected := map[string]int{
+		"1+2+3":         6,
+		"2*2+3":         7,
+		"1+2*3":         7,
+		"1+2-3":         0,
+		"1*(2+3)":       5,
+		"2*(2+3*2)-2*3": 10,
+	}
+	for str, i := range expected {
+		tr := parlex.Run(str, lxr, p, reducer)
+		ei := eval(tr)
+		fmt.Println(str, "\n", tr, ei, "=", i)
+		ok = ok && ei == i
+	}
+	fmt.Println(ok)
 }
 
 func eval(node parlex.ParseNode) int {
