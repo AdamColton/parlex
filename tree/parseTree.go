@@ -131,3 +131,19 @@ func (p *PN) Size() int {
 	}
 	return size
 }
+
+// ChildAt takes an index and a list of symbols and returns true if there is a
+// child at that index and it matches one of the symbols.
+func (p *PN) ChildAt(cIdx int, symbs ...parlex.Symbol) bool {
+	cIdx, _, ok := p.GetIdx(cIdx)
+	if !ok {
+		return false
+	}
+	cs := p.C[cIdx].Kind()
+	for _, s := range symbs {
+		if s == cs {
+			return true
+		}
+	}
+	return false
+}

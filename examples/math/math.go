@@ -7,7 +7,9 @@ import (
 	"github.com/adamcolton/parlex/lexer"
 	"github.com/adamcolton/parlex/parser"
 	"github.com/adamcolton/parlex/tree"
+	"os"
 	"strconv"
+	"strings"
 )
 
 const lexerRules = `
@@ -18,67 +20,40 @@ const lexerRules = `
   ( /\(/
   ) /\)/
 `
+
+var lxr = parlex.MustLexer(lexer.New(lexerRules))
+
 const grammarRules = `
   E -> E op2 E
     -> E op1 E
     -> number
+    -> op2 number
     -> P
   P -> ( E )
 `
 
+var grmr = parlex.MustGrammar(grammar.New(grammarRules))
+var prsr = parser.Packrat(grmr)
+
 var reducer = tree.Reducer{
 	"E": func(node *tree.PN) {
-		if ln := len(node.C); ln == 1 {
-			node.PromoteSingleChild()
-		} else if ln == 3 {
-			if k := node.C[1].Kind(); k == "op1" || k == "op2" {
-				node.PromoteChild(1)
-			}
+		if !node.PromoteSingleChild() {
+			node.PromoteChild(1)
 		}
 	},
-	"P": func(node *tree.PN) {
-		*node = *(node.C[1])
-	},
+	"P": tree.ReplaceWithChild(1),
 }
 
-func check(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+var runner = parlex.New(lxr, prsr, reducer)
 
 func main() {
-	lxr, err := lexer.New(lexerRules)
-	check(err)
-
-	grmr, err := grammar.New(grammarRules)
-	check(err)
-
-	p := parser.Packrat(grmr)
-
-	ok := true
-	expected := map[string]int{
-		"1+2+3":         6,
-		"2*2+3":         7,
-		"1+2*3":         7,
-		"1+2-3":         0,
-		"1*(2+3)":       5,
-		"2*(2+3*2)-2*3": 10,
-	}
-	for str, i := range expected {
-		tr := parlex.Run(str, lxr, p, reducer)
-		ei := eval(tr)
-		fmt.Println(str, "\n", tr, ei, "=", i)
-		ok = ok && ei == i
-	}
-	fmt.Println(ok)
+	fmt.Println(eval(runner.Run(strings.Join(os.Args[1:], " "))))
 }
 
-func eval(node parlex.ParseNode) int {
+func eval(node parlex.ParseNode) float64 {
 	switch node.Kind() {
 	case "number":
-		i, err := strconv.Atoi(node.Value())
-		check(err)
+		i, _ := strconv.ParseFloat(node.Value(), 64)
 		return i
 	case "op1", "op2":
 		a := eval(node.Child(0))

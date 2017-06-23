@@ -43,3 +43,30 @@ func LexemeString(l Lexeme) string {
 	}
 	return k + " : " + v
 }
+
+// MustParser consumes the error from a parser constructor and panics if it is
+// not nil.
+func MustParser(p Parser, err error) Parser {
+	if err != nil {
+		panic(err)
+	}
+	return p
+}
+
+// MustLexer consumes the error from a lexer constructor and panics if it is
+// not nil.
+func MustLexer(l Lexer, err error) Lexer {
+	if err != nil {
+		panic(err)
+	}
+	return l
+}
+
+// MustGrammar consumes the error from a grammar constructor and panics if it is
+// not nil.
+func MustGrammar(g Grammar, err error) Grammar {
+	if err != nil {
+		panic(err)
+	}
+	return g
+}
