@@ -10,6 +10,47 @@ type PR struct {
 	parlex.Grammar
 }
 
+type treeMarker struct {
+	symbol parlex.Symbol
+	start  int
+}
+
+type treeKey struct {
+	treeMarker
+	end int
+}
+
+type treeDef struct {
+	treeKey
+	children []treeKey
+	priority int
+}
+
+type treePartial struct {
+	treeDef
+	prod parlex.Production
+}
+
+// updaters form a linked-list of things to process. An updater takes the
+// treePartial and creates a new one extended with the tree key
+type updater struct {
+	next      *updater
+	base      treePartial
+	extension treeKey
+}
+
+// pack-rat parse operation
+type prOp struct {
+	grmr     parlex.Grammar
+	lxms     []parlex.Lexeme
+	memo     map[treeKey]treeDef
+	markers  map[treeMarker][]treeDef
+	partials map[treeMarker][]treePartial
+	queued   map[treeMarker]bool
+	nonterm  map[parlex.Symbol]bool
+	stack    *updater
+}
+
 // Packrat returns a Packrat parser
 func Packrat(grmr parlex.Grammar) *PR {
 	return &PR{
@@ -43,112 +84,69 @@ func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	}
 	op.addProds(start)
 
+	var u *updater
 	for op.stack != nil {
-		u := op.stack
-		op.stack = u.next
+		u, op.stack = op.stack, op.stack.next
 		u.update(op)
 	}
 
 	var accept treeKey
 	accept.symbol = nts[0]
 	accept.end = len(lexemes)
-
-	return op.memo[accept].toPN(lexemes, op.memo)
+	accepted := op.memo[accept]
+	return accepted.toPN(lexemes, op.memo)
 }
 
-func (op *prOp) addProds(marker treeMarker) {
-	if op.queued[marker] {
+func (op *prOp) addProds(root treeMarker) {
+	if op.queued[root] {
 		return
 	}
-	op.queued[marker] = true
-	for pri, prod := range op.grmr.Productions(marker.symbol) {
-		tm := treeMarker{
+	op.queued[root] = true
+	for pri, prod := range op.grmr.Productions(root.symbol) {
+		prodStart := treeMarker{
 			symbol: prod[0],
-			start:  marker.start,
+			start:  root.start,
 		}
-		var tp treePartial
-		tp.treeMarker = marker
-		tp.prod = prod
-		tp.priority = pri
+		var prodPartial treePartial
+		prodPartial.treeMarker = root
+		prodPartial.prod = prod
+		prodPartial.priority = pri
 
-		op.addPartial(tm, tp)
+		op.addPartial(prodPartial, prodStart)
 	}
-}
-
-type prOp struct {
-	grmr     parlex.Grammar
-	lxms     []parlex.Lexeme
-	memo     map[treeKey]treeDef
-	markers  map[treeMarker][]treeDef
-	partials map[treeMarker][]treePartial
-	queued   map[treeMarker]bool
-	nonterm  map[parlex.Symbol]bool
-	stack    *updater
-}
-
-type treeMarker struct {
-	symbol parlex.Symbol
-	start  int
-}
-
-type treeKey struct {
-	treeMarker
-	end int
-}
-
-type treeDef struct {
-	treeKey
-	children []treeKey
-	priority int
-}
-
-type treePartial struct {
-	treeDef
-	prod parlex.Production
-}
-
-// updaters form a linked-list of things to process. An updater takes the
-// treePartial and creates a new one extended with the tree key
-type updater struct {
-	next    *updater
-	partial treePartial
-	key     treeKey
 }
 
 func (u *updater) update(op *prOp) {
-	var tp treePartial
-	tp.treeKey = u.partial.treeKey
-	tp.prod = u.partial.prod
-	tp.priority = u.partial.priority
-	ln := len(u.partial.children)
-	tp.children = make([]treeKey, ln+1)
-	copy(tp.children, u.partial.children)
-	tp.children[ln] = u.key
-	tp.end = u.key.end
+	extended := u.base
+	ln := len(u.base.children)
+	extended.children = make([]treeKey, ln+1)
+	copy(extended.children, u.base.children)
+	extended.children[ln] = u.extension
+	extended.end = u.extension.end
 
-	if ln+1 == len(tp.prod) {
-		op.addToMemo(tp.treeDef)
+	if ln+1 == len(extended.prod) {
+		op.addToMemo(extended.treeDef)
 		return
 	}
 
-	tm := treeMarker{
-		symbol: tp.prod[ln+1],
-		start:  tp.end,
+	requires := treeMarker{
+		symbol: extended.prod[ln+1],
+		start:  extended.end,
 	}
-	if tp.end < len(op.lxms) && tm.symbol == op.lxms[tp.end].Kind() {
+
+	if extended.end < len(op.lxms) && requires.symbol == op.lxms[extended.end].Kind() {
 		var td treeDef
-		td.treeMarker = tm
-		td.end = tm.start + 1
+		td.treeMarker = requires
+		td.end = requires.start + 1
 		op.addToMemo(td)
 		(&updater{
-			partial: tp,
-			key:     td.treeKey,
+			base:      extended,
+			extension: td.treeKey,
 		}).update(op)
 		return
 	}
 
-	op.addPartial(tm, tp)
-
+	op.addPartial(extended, requires)
 }
 
 func (op *prOp) addToMemo(td treeDef) {
@@ -177,8 +175,7 @@ func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
 	// they should both have the same number of children - equal priority means
 	// equal production
 	for i, ck := range td.children {
-		c1 := op.memo[ck]
-		c2 := op.memo[td2.children[i]]
+		c1, c2 := op.memo[ck], op.memo[td2.children[i]]
 		p := c1.comparePriority(&c2, op)
 		if p != 0 {
 			return p
@@ -187,35 +184,35 @@ func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
 	return 0
 }
 
-func (op *prOp) addPartial(tm treeMarker, tp treePartial) {
-	if tm.start >= len(op.lxms) {
+func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
+	if requires.start >= len(op.lxms) {
 		return
 	}
-	if op.nonterm[tm.symbol] {
-		op.partials[tm] = append(op.partials[tm], tp)
-	} else if tm.symbol == op.lxms[tm.start].Kind() {
+	if op.nonterm[requires.symbol] {
+		op.partials[requires] = append(op.partials[requires], tp)
+	} else if requires.symbol == op.lxms[requires.start].Kind() {
 		var td treeDef
-		td.treeMarker = tm
-		td.end = tm.start + 1
+		td.treeMarker = requires
+		td.end = requires.start + 1
 		op.addToMemo(td)
 	}
 
-	for _, td := range op.markers[tm] {
+	for _, td := range op.markers[requires] {
 		op.push(tp, td.treeKey)
 	}
 
-	op.addProds(tm)
+	op.addProds(requires)
 }
 
 func (op *prOp) push(tp treePartial, tk treeKey) {
 	op.stack = &updater{
-		next:    op.stack,
-		partial: tp,
-		key:     tk,
+		next:      op.stack,
+		base:      tp,
+		extension: tk,
 	}
 }
 
-func (td treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN {
+func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN {
 	if td.start == td.end {
 		return nil
 	}
@@ -230,7 +227,8 @@ func (td treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN 
 		C:      make([]*tree.PN, len(td.children)),
 	}
 	for i, c := range td.children {
-		cpn := memo[c].toPN(lxms, memo)
+		ct := memo[c]
+		cpn := ct.toPN(lxms, memo)
 		cpn.P = pn
 		pn.C[i] = cpn
 	}

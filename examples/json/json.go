@@ -46,9 +46,7 @@ const grammarRules = `
 `
 
 var grmr = parlex.MustGrammar(grammar.New(grammarRules))
-
-//var prsr = parlex.MustParser(parser.TopDown(grmr))
-var prsr = parser.Packrat(grmr)
+var prsr = parlex.MustParser(parser.TopDown(grmr))
 
 func reduceList(node *tree.PN) {
 	node.RemoveChild(1)       // remove comma
