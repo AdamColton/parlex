@@ -198,3 +198,29 @@ func TestCyclicRecursion(t *testing.T) {
 		t.Error(pn.(*tree.PN).String())
 	}
 }
+
+func BenchmarkPackrat(b *testing.B) {
+	lxr, _ := lexer.New(`
+    ( /\(/
+    ) /\)/
+    op /[+\-\*\/]/
+    int /\d+/
+    space /\s+/ -
+  `)
+
+	grmr, _ := grammar.New(`
+    E -> E op E
+      -> ( E )
+      -> int
+  `)
+
+	s := "1+2*3*(4+5*6)-7/8"
+	lxs := lxr.Lex(s)
+	p := Packrat(grmr)
+
+	b.StartTimer()
+	for i := 0; i < 10000; i++ {
+		p.Parse(lxs)
+	}
+	b.StopTimer()
+}

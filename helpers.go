@@ -12,36 +12,42 @@ func GrammarString(g Grammar) string {
 	nonTerminals := g.NonTerminals()
 	for _, nt := range nonTerminals {
 		prods := g.Productions(nt)
-		if kl := nt.Len(); kl > longest {
-			longest = kl
+		if l := nt.Len(); l > longest {
+			longest = l
 		}
 		totalCount += len(prods)
 	}
 
 	format := fmt.Sprintf("%%-%ds -> %%s", longest)
-	segs := make([]string, totalCount)
-	s := 0
+	segs := make([]string, 0, totalCount)
 	for _, nt := range nonTerminals {
 		prods := g.Productions(nt)
-		ks := string(nt)
-		for i, prod := range prods {
-			segs[s] = fmt.Sprintf(format, ks, prod)
-			s++
-			if i == 0 {
-				ks = "" //don't print non terminal after first production
-			}
+		segs = append(segs, fmt.Sprintf(format, string(nt), prods[0]))
+		for _, prod := range prods[1:] {
+			segs = append(segs, fmt.Sprintf(format, "", prod))
 		}
 	}
 	return strings.Join(segs, "\n")
 }
 
 // LexemeString returns a Lexeme in the form "Kind : Value"
-func LexemeString(l Lexeme) string {
-	k, v := string(l.Kind()), l.Value()
-	if v == "" {
-		return k
+func LexemeString(ls ...Lexeme) string {
+	if len(ls) == 0 {
+		return ""
 	}
-	return k + " : " + v
+	var strs = make([]string, len(ls))
+	for i, l := range ls {
+		k, v := string(l.Kind()), l.Value()
+		if v == "" {
+			strs[i] = k
+		} else {
+			strs[i] = k + ": " + v
+		}
+	}
+	if len(strs) == 1 {
+		return strs[0]
+	}
+	return "[" + strings.Join(strs, ", ") + "]"
 }
 
 // MustParser consumes the error from a parser constructor and panics if it is
