@@ -1,18 +1,23 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexer"
 	"github.com/adamcolton/parlex/parser"
 	"github.com/adamcolton/parlex/tree"
+	"os"
+	"strings"
 )
 
 const lexerRules = `
   space  /\s+/ -
   number /\d*\.?\d+/
   string /(\"([^\"\\]|(\\.))*\")/
+  bool   /(true)|(false)/
+  null
   ,
   {
   }
@@ -20,9 +25,14 @@ const lexerRules = `
   ]
   :
 `
+
+var lxr = parlex.MustLexer(lexer.New(lexerRules))
+
 const grammarRules = `
   Value         -> string
                 -> number
+                -> bool
+                -> null
                 -> Array
                 -> Object
   Object        -> { ObjectDef }
@@ -34,6 +44,11 @@ const grammarRules = `
   ArrayContents -> Value , ArrayContents
                 -> Value
 `
+
+var grmr = parlex.MustGrammar(grammar.New(grammarRules))
+
+//var prsr = parlex.MustParser(parser.TopDown(grmr))
+var prsr = parser.Packrat(grmr)
 
 func reduceList(node *tree.PN) {
 	node.RemoveChild(1)       // remove comma
@@ -55,6 +70,8 @@ var reducer = tree.Reducer{
 	"Array":         reduceListWrapper,
 }
 
+var runner = parlex.New(lxr, prsr, reducer)
+
 func check(err error) {
 	if err != nil {
 		panic(err)
@@ -62,32 +79,65 @@ func check(err error) {
 }
 
 func main() {
-	lxr, err := lexer.New(lexerRules)
-	check(err)
+	s := strings.Join(os.Args[1:], " ")
+	var buf bytes.Buffer
+	tr := runner.Run(s)
+	prettyPrint(tr, &buf, "")
+	fmt.Println(buf.String())
+}
 
-	grmr, err := grammar.New(grammarRules)
-	check(err)
+func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
+	switch node.Kind() {
+	case "string", "number", "bool", "null", "Key":
+		buf.WriteString(node.Value())
+	case "Array":
+		buf.WriteString("[")
+		cpad := pad + "  "
+		prepend := false
+		for i := 0; i < node.Children(); i++ {
+			if i != 0 {
+				buf.WriteString(",")
+			}
+			child := node.Child(i)
+			if child.Kind() == "Array" || child.Kind() == "Object" {
+				buf.WriteString("\n")
+				buf.WriteString(cpad)
+				prepend = true
+			}
+			prettyPrint(child, buf, cpad)
+		}
+		if prepend {
+			buf.WriteString("\n")
+			buf.WriteString(pad)
+		}
+		buf.WriteString("]")
+	case "Object":
+		if node.Children() == 0 {
+			buf.WriteString("{}")
+			return
+		}
+		if node.Children() == 1 {
+			buf.WriteString("{")
+			prettyPrint(node.Child(0), buf, pad)
+			buf.WriteString("}")
+			return
+		}
+		buf.WriteString("{\n")
+		cpad := pad + "  "
+		for i := 0; i < node.Children(); i++ {
+			if i != 0 {
+				buf.WriteString(",\n")
+			}
+			buf.WriteString(cpad)
+			prettyPrint(node.Child(i), buf, cpad)
+		}
+		buf.WriteString("\n")
+		buf.WriteString(pad)
+		buf.WriteString("}")
+	case "KeyVal":
+		prettyPrint(node.Child(0), buf, pad)
+		buf.WriteString(": ")
+		prettyPrint(node.Child(1), buf, pad)
+	}
 
-	p, err := parser.TopDown(grmr)
-	check(err)
-
-	s := `
-    {
-      "test":"test",
-      "foo": "bar",
-      "pi":[3,1,4,1,5],
-      "sub":{
-        "one":1,
-        "two":2
-      },
-      "nestedArr":[
-        ["A","B","C"],
-        [42,43,44],
-        [{"name":"Adam"}, {"name":"Maggie"}, {"name":"Bea"}]
-      ]
-    }
-  `
-
-	tr := parlex.Run(s, lxr, p, reducer)
-	fmt.Println(tr)
 }

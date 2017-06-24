@@ -37,6 +37,9 @@ func (r Reducer) Reduce(node parlex.ParseNode) parlex.ParseNode {
 // path or with a stack. Though often it can be avoided by adding the reduction
 // logic further up the tree.
 func (r Reducer) RawReduce(node parlex.ParseNode) *PN {
+	if node == nil {
+		return nil
+	}
 	cp := &PN{
 		Lexeme: &parlex.L{
 			V: node.Value(),
