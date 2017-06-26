@@ -224,3 +224,30 @@ func BenchmarkPackrat(b *testing.B) {
 	}
 	b.StopTimer()
 }
+
+func TestPRNil(t *testing.T) {
+	lxr, err := lexer.New(`
+    ( /\(/
+    ) /\)/
+    op /[+\-\*\/]/
+    int /\d+/
+    space /\s+/
+  `)
+	assert.NoError(t, err)
+	grmr, err := grammar.New(`
+    E   -> T Gap op Gap E
+        -> T
+    T   -> P
+        -> int
+    P   -> ( Gap E Gap )
+    Gap -> space Gap
+        -> NIL
+  `)
+	assert.NoError(t, err)
+
+	s := "( 1 + 2 )  *  3"
+	lxs := lxr.Lex(s)
+	p := Packrat(grmr)
+	pn := p.Parse(lxs)
+	assert.NotNil(t, pn)
+}

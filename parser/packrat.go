@@ -134,10 +134,14 @@ func (u *updater) update(op *prOp) {
 		start:  extended.end,
 	}
 
-	if extended.end < len(op.lxms) && requires.symbol == op.lxms[extended.end].Kind() {
+	if (extended.end < len(op.lxms) && requires.symbol == op.lxms[extended.end].Kind()) || requires.symbol == "NIL" {
 		var td treeDef
 		td.treeMarker = requires
-		td.end = requires.start + 1
+		if requires.symbol == "NIL" {
+			td.end = requires.start
+		} else {
+			td.end = requires.start + 1
+		}
 		op.addToMemo(td)
 		(&updater{
 			base:      extended,
@@ -185,15 +189,16 @@ func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
 }
 
 func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
-	if requires.start >= len(op.lxms) {
-		return
-	}
 	if op.nonterm[requires.symbol] {
 		op.partials[requires] = append(op.partials[requires], tp)
-	} else if requires.symbol == op.lxms[requires.start].Kind() {
+	} else if (requires.start < len(op.lxms) && requires.symbol == op.lxms[requires.start].Kind()) || requires.symbol == "NIL" {
 		var td treeDef
 		td.treeMarker = requires
-		td.end = requires.start + 1
+		if requires.symbol == "NIL" {
+			td.end = requires.start
+		} else {
+			td.end = requires.start + 1
+		}
 		op.addToMemo(td)
 	}
 
@@ -213,9 +218,6 @@ func (op *prOp) push(tp treePartial, tk treeKey) {
 }
 
 func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN {
-	if td.start == td.end {
-		return nil
-	}
 	var lx parlex.Lexeme
 	if lxms[td.start].Kind() == td.symbol {
 		lx = lxms[td.start]
