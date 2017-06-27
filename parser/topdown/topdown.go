@@ -3,7 +3,6 @@ package topdown
 import (
 	"errors"
 	"github.com/adamcolton/parlex"
-	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexeme"
 	"github.com/adamcolton/parlex/tree"
 )
@@ -19,7 +18,7 @@ var ErrLeftRecursion = errors.New("Top Down parser cannot handle left recursion"
 
 // New returns a topdown parser
 func New(grmr parlex.Grammar) (*TD, error) {
-	if grammar.IsLeftRecursive(grmr) {
+	if parlex.IsLeftRecursive(grmr) {
 		return nil, ErrLeftRecursion
 	}
 	return &TD{

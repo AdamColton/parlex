@@ -23,28 +23,6 @@ func TestGrammarString(t *testing.T) {
 	assert.Equal(t, g1.String(), parlex.GrammarString(g1))
 }
 
-func TestIsRecursive(t *testing.T) {
-	g, err := New(`
-    AA -> B C
-         x
-    B -> y
-      -> w
-    C -> z 
-  `)
-	assert.NoError(t, err)
-	assert.False(t, IsLeftRecursive(g))
-
-	g, err = New(`
-    A -> B C
-         x
-    B -> Y
-    C -> z
-    Y -> A 
-  `)
-	assert.NoError(t, err)
-	assert.True(t, IsLeftRecursive(g))
-}
-
 func TestNil(t *testing.T) {
 	g, err := New(`
     A   -> B C
