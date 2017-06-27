@@ -1,9 +1,10 @@
-package lexer
+package simplelexer
 
 import (
 	"errors"
 	"fmt"
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/lexeme"
 	"regexp"
 	"strings"
 )
@@ -142,10 +143,7 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 	errStart := 0
 
 	for cur := 0; cur < len(b); {
-		lx := &parlex.L{
-			K: "",
-			V: "",
-		}
+		lx := lexeme.New("")
 		lxEnd := cur
 		lxP := -1
 		discard := false
@@ -174,10 +172,8 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 			cur++
 		} else {
 			if errFlag { // if we were in an error state, resolve it by adding the error lexeme
-				lxs = append(lxs, &parlex.L{
-					K: "Error",
-					V: string(b[errStart:cur]),
-				})
+				val := string(b[errStart:cur])
+				lxs = append(lxs, lexeme.New("Error").Set(val))
 				errFlag = false
 			}
 			if !discard {
@@ -199,10 +195,8 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 	}
 
 	if errFlag { // if we were in an error state, resolve it by adding the error lexeme
-		lxs = append(lxs, &parlex.L{
-			K: "Error",
-			V: string(b[errStart:]),
-		})
+		val := string(b[errStart:])
+		lxs = append(lxs, lexeme.New("Error").Set(val))
 	}
 
 	return lxs

@@ -24,21 +24,42 @@ func TestGrammarString(t *testing.T) {
 }
 
 func TestIsRecursive(t *testing.T) {
-	g, _ := New(`
+	g, err := New(`
     AA -> B C
          x
     B -> y
       -> w
     C -> z 
   `)
+	assert.NoError(t, err)
 	assert.False(t, IsLeftRecursive(g))
 
-	g, _ = New(`
+	g, err = New(`
     A -> B C
          x
     B -> Y
     C -> z
     Y -> A 
   `)
+	assert.NoError(t, err)
 	assert.True(t, IsLeftRecursive(g))
+}
+
+func TestNil(t *testing.T) {
+	g, err := New(`
+    A   -> B C
+           x
+    B   -> Y
+    C   -> z
+        -> NIL
+    Y   -> A
+    NIL ->
+  `)
+	assert.NoError(t, err)
+	assert.NotNil(t, g)
+
+	nilProd := g.Productions("NIL")
+	if assert.Len(t, nilProd, 1) {
+		assert.Len(t, nilProd[0], 0)
+	}
 }

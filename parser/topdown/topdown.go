@@ -1,9 +1,10 @@
-package parser
+package topdown
 
 import (
 	"errors"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
+	"github.com/adamcolton/parlex/lexeme"
 	"github.com/adamcolton/parlex/tree"
 )
 
@@ -16,8 +17,8 @@ type TD struct {
 // cannot handle left recursion.
 var ErrLeftRecursion = errors.New("Top Down parser cannot handle left recursion")
 
-// TopDown returns a top down parser
-func TopDown(grmr parlex.Grammar) (*TD, error) {
+// New returns a topdown parser
+func New(grmr parlex.Grammar) (*TD, error) {
 	if grammar.IsLeftRecursive(grmr) {
 		return nil, ErrLeftRecursion
 	}
@@ -92,9 +93,7 @@ func (op *tdOp) tryAccept(pop ParseOp, all bool) acceptResp {
 		if pop.Symbol == "NIL" {
 			return acceptResp{
 				PN: &tree.PN{
-					Lexeme: &parlex.L{
-						K: "NIL",
-					},
+					Lexeme: lexeme.New("NIL"),
 				},
 				end: pop.Pos,
 			}
@@ -116,7 +115,7 @@ func (op *tdOp) tryAccept(pop ParseOp, all bool) acceptResp {
 		if accepts && (!all || pos == len(op.lxs)) {
 			return acceptResp{
 				PN: &tree.PN{
-					Lexeme: &parlex.L{K: pop.Symbol},
+					Lexeme: lexeme.New(pop.Symbol),
 					C:      children,
 				},
 				end: pos,

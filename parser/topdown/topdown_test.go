@@ -1,15 +1,15 @@
-package parser
+package topdown
 
 import (
 	"github.com/adamcolton/parlex/grammar"
-	"github.com/adamcolton/parlex/lexer"
+	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/tree"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestGpParse(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -27,7 +27,7 @@ func TestGpParse(t *testing.T) {
 
 	s := "1+2+3"
 	lxs := lxr.Lex(s)
-	p, err := TopDown(grmr)
+	p, err := New(grmr)
 	assert.NoError(t, err)
 	pn := p.Parse(lxs)
 	if assert.NotNil(t, pn) {
@@ -59,7 +59,7 @@ func TestGpParse(t *testing.T) {
 }
 
 func TestParens(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -78,7 +78,7 @@ func TestParens(t *testing.T) {
 
 	s := "(1+2)*3"
 	lxs := lxr.Lex(s)
-	p, err := TopDown(grmr)
+	p, err := New(grmr)
 	assert.NoError(t, err)
 	pn := p.Parse(lxs)
 	assert.NotNil(t, pn)
@@ -86,7 +86,7 @@ func TestParens(t *testing.T) {
 }
 
 func TestNil(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -107,7 +107,7 @@ func TestNil(t *testing.T) {
 
 	s := "( 1 + 2 )  *  3"
 	lxs := lxr.Lex(s)
-	p, err := TopDown(grmr)
+	p, err := New(grmr)
 	assert.NoError(t, err)
 	pn := p.Parse(lxs)
 	assert.NotNil(t, pn)

@@ -1,7 +1,8 @@
-package parser
+package packrat
 
 import (
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/lexeme"
 	"github.com/adamcolton/parlex/tree"
 )
 
@@ -50,11 +51,18 @@ type prOp struct {
 	stack    *updater
 }
 
-// Packrat returns a Packrat parser
-func Packrat(grmr parlex.Grammar) *PR {
+// New returns a Packrat parser
+func New(grmr parlex.Grammar) *PR {
 	return &PR{
 		Grammar: grmr,
 	}
+}
+
+// Constructor fulfills parlex.ParserConstructor
+func Constructor(grmr parlex.Grammar) (parlex.Parser, error) {
+	return &PR{
+		Grammar: grmr,
+	}, nil
 }
 
 // Parse fulfills the parlex.Parser. The Packrat parser will try to parse the
@@ -220,7 +228,7 @@ func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN
 	if lxms[td.start].Kind() == td.symbol {
 		lx = lxms[td.start]
 	} else {
-		lx = &parlex.L{K: td.symbol}
+		lx = lexeme.New(td.symbol)
 	}
 	pn := &tree.PN{
 		Lexeme: lx,

@@ -4,11 +4,7 @@ import (
 	"strings"
 )
 
-// Symbol is base of a grammar. Symbols should not contain the following
-// characters
-// * any white space character
-// * >
-// * -
+// Symbol is base of a grammar.
 type Symbol string
 
 // Len returns the number of characters in the string (not necessarily the

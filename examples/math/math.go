@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
-	"github.com/adamcolton/parlex/lexer"
-	"github.com/adamcolton/parlex/parser"
+	"github.com/adamcolton/parlex/lexer/simplelexer"
+	"github.com/adamcolton/parlex/parser/packrat"
 	"github.com/adamcolton/parlex/tree"
 	"os"
 	"strconv"
@@ -21,7 +21,7 @@ const lexerRules = `
   ) /\)/
 `
 
-var lxr = parlex.MustLexer(lexer.New(lexerRules))
+var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 
 const grammarRules = `
   E -> E op2 E
@@ -33,7 +33,7 @@ const grammarRules = `
 `
 
 var grmr = parlex.MustGrammar(grammar.New(grammarRules))
-var prsr = parser.Packrat(grmr)
+var prsr = packrat.New(grmr)
 
 var reducer = tree.Reducer{
 	"E": func(node *tree.PN) {

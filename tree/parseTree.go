@@ -3,6 +3,7 @@ package tree
 import (
 	"errors"
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/lexeme"
 	"regexp"
 	"strings"
 )
@@ -25,12 +26,11 @@ func New(str string) (*PN, error) {
 			cur = cur.P
 		}
 		if m[2] != "" {
+			kind := parlex.Symbol(m[2])
+			val := m[3]
 			ch := &PN{
-				Lexeme: &parlex.L{
-					K: parlex.Symbol(m[2]),
-					V: m[3],
-				},
-				P: cur,
+				Lexeme: lexeme.New(kind).Set(val),
+				P:      cur,
 			}
 			cur.C = append(cur.C, ch)
 			if m[4] == "{" {

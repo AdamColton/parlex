@@ -2,6 +2,7 @@ package tree
 
 import (
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/lexeme"
 )
 
 // Reduction is a function that reduces a node.
@@ -41,11 +42,8 @@ func (r Reducer) RawReduce(node parlex.ParseNode) *PN {
 		return nil
 	}
 	cp := &PN{
-		Lexeme: &parlex.L{
-			V: node.Value(),
-			K: node.Kind(),
-		},
-		C: make([]*PN, node.Children()),
+		Lexeme: lexeme.Copy(node),
+		C:      make([]*PN, node.Children()),
 	}
 	for i := range cp.C {
 		cp.C[i] = r.RawReduce(node.Child(i))
@@ -204,10 +202,7 @@ func (p *PN) PromoteChildValue(cIdx int) {
 		cIdx = l + cIdx
 	}
 	if cIdx >= 0 && l > cIdx {
-		p.Lexeme = &parlex.L{
-			K: p.Kind(),
-			V: p.C[cIdx].Value(),
-		}
+		p.Lexeme = lexeme.New(p.Kind()).Set(p.C[cIdx].Value())
 	}
 	p.RemoveChild(cIdx)
 }

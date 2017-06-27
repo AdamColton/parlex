@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
-	"github.com/adamcolton/parlex/lexer"
-	"github.com/adamcolton/parlex/parser"
+	"github.com/adamcolton/parlex/lexer/simplelexer"
+	"github.com/adamcolton/parlex/parser/topdown"
 	"github.com/adamcolton/parlex/tree"
 	"os"
 	"strings"
@@ -26,7 +26,7 @@ const lexerRules = `
   :
 `
 
-var lxr = parlex.MustLexer(lexer.New(lexerRules))
+var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 
 const grammarRules = `
   Value         -> string
@@ -46,7 +46,7 @@ const grammarRules = `
 `
 
 var grmr = parlex.MustGrammar(grammar.New(grammarRules))
-var prsr = parlex.MustParser(parser.TopDown(grmr))
+var prsr = parlex.MustParser(topdown.New(grmr))
 
 func reduceList(node *tree.PN) {
 	node.RemoveChild(1)       // remove comma

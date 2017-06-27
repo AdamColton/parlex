@@ -1,4 +1,4 @@
-package lexer
+package simplelexer
 
 import (
 	"github.com/adamcolton/parlex"

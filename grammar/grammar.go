@@ -120,6 +120,9 @@ func (g *Grammar) NonTerminals() []parlex.Symbol {
 
 // Add a production to the grammar.
 func (g *Grammar) Add(from parlex.Symbol, to parlex.Production) {
+	if to == nil {
+		to = make(parlex.Production, 0)
+	}
 	prod, defined := g.productions[from]
 	if !defined {
 		g.order = append(g.order, from)

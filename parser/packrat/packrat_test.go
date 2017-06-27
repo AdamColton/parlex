@@ -1,9 +1,9 @@
-package parser
+package packrat
 
 import (
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
-	"github.com/adamcolton/parlex/lexer"
+	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/tree"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestGpParsePR(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -29,7 +29,7 @@ func TestGpParsePR(t *testing.T) {
 
 	s := "1+2+3"
 	lxs := lxr.Lex(s)
-	p := Packrat(grmr)
+	p := New(grmr)
 	assert.NoError(t, err)
 	pn := p.Parse(lxs)
 	if assert.NotNil(t, pn) {
@@ -61,7 +61,7 @@ func TestGpParsePR(t *testing.T) {
 }
 
 func TestParensPR(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -80,14 +80,14 @@ func TestParensPR(t *testing.T) {
 
 	s := "(1+2)*3"
 	lxs := lxr.Lex(s)
-	p := Packrat(grmr)
+	p := New(grmr)
 	assert.NoError(t, err)
 	pn := p.Parse(lxs)
 	assert.NotNil(t, pn)
 }
 
 func TestLeftRecursion(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -104,7 +104,7 @@ func TestLeftRecursion(t *testing.T) {
 
 	s := "5*(1+2)*3"
 	lxs := lxr.Lex(s)
-	p := Packrat(grmr)
+	p := New(grmr)
 	assert.NoError(t, err)
 	pn := p.Parse(lxs)
 	assert.NotNil(t, pn)
@@ -146,7 +146,7 @@ func TestLeftRecursion(t *testing.T) {
 }
 
 func TestCyclicRecursion(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     + /\+/
     - /\-/
   `)
@@ -161,7 +161,7 @@ func TestCyclicRecursion(t *testing.T) {
 
 	s := "+-++"
 	lxs := lxr.Lex(s)
-	p := Packrat(grmr)
+	p := New(grmr)
 	assert.NoError(t, err)
 	var pn parlex.ParseNode
 	ch := make(chan bool)
@@ -199,8 +199,8 @@ func TestCyclicRecursion(t *testing.T) {
 	}
 }
 
-func BenchmarkPackrat(b *testing.B) {
-	lxr, _ := lexer.New(`
+func BenchmarkNew(b *testing.B) {
+	lxr, _ := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -216,7 +216,7 @@ func BenchmarkPackrat(b *testing.B) {
 
 	s := "1+2*3*(4+5*6)-7/8"
 	lxs := lxr.Lex(s)
-	p := Packrat(grmr)
+	p := New(grmr)
 
 	b.StartTimer()
 	for i := 0; i < 10000; i++ {
@@ -226,7 +226,7 @@ func BenchmarkPackrat(b *testing.B) {
 }
 
 func TestPRNil(t *testing.T) {
-	lxr, err := lexer.New(`
+	lxr, err := simplelexer.New(`
     ( /\(/
     ) /\)/
     op /[+\-\*\/]/
@@ -247,7 +247,13 @@ func TestPRNil(t *testing.T) {
 
 	s := "( 1 + 2 )  *  3"
 	lxs := lxr.Lex(s)
-	p := Packrat(grmr)
+	p := New(grmr)
 	pn := p.Parse(lxs)
 	assert.NotNil(t, pn)
+}
+
+func TestConstructor(t *testing.T) {
+	var pc parlex.ParserConstructor
+	pc = Constructor
+	assert.NotNil(t, pc)
 }

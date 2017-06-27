@@ -5,13 +5,22 @@ import (
 	"testing"
 )
 
+type lx struct {
+	k Symbol
+	v string
+}
+
+func (l *lx) Kind() Symbol             { return l.k }
+func (l *lx) Value() string            { return l.v }
+func (l *lx) Pos() (line int, col int) { return 0, 0 }
+
 func TestLexemeString(t *testing.T) {
 	lxs := []Lexeme{
-		&L{K: "int", V: "1"},
-		&L{K: "op", V: "+"},
-		&L{K: "int", V: "2"},
-		&L{K: "op", V: "*"},
-		&L{K: "int", V: "3"},
+		&lx{k: "int", v: "1"},
+		&lx{k: "op", v: "+"},
+		&lx{k: "int", v: "2"},
+		&lx{k: "op", v: "*"},
+		&lx{k: "int", v: "3"},
 	}
 
 	expected := "[int: 1, op: +, int: 2, op: *, int: 3]"

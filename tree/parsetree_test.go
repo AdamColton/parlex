@@ -2,6 +2,7 @@ package tree
 
 import (
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/lexeme"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -9,10 +10,7 @@ import (
 
 func TestParseNode(t *testing.T) {
 	treeNode := &PN{
-		Lexeme: &parlex.L{
-			K: "foo",
-			V: "bar",
-		},
+		Lexeme: lexeme.New("foo").Set("bar"),
 	}
 
 	parlexNode := parlex.ParseNode(treeNode)

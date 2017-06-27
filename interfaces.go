@@ -27,11 +27,12 @@ type Parser interface {
 	Parse([]Lexeme) ParseNode
 }
 
+type ParserConstructor func(Grammar) (Parser, error)
+
 // Grammar represents a context free Grammar.
 type Grammar interface {
 	Productions(symbol Symbol) Productions
 	NonTerminals() []Symbol // The first NonTerminal should be the start symbol
-	Add(symbol Symbol, production Production)
 }
 
 // Reducer is used to reduce a ParseTree to something more useful, generally
