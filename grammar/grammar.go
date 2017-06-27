@@ -60,7 +60,7 @@ type Grammar struct {
 	totalCount  int
 }
 
-// New a Grammar. The productions string should have one rule per line. A rule
+// New Grammar. The productions string should have one rule per line. A rule
 // has the form "NonTerminal -> A B C" where A,B and C are symbols for either
 // terminals or non-terminals. If there are multiple productions for a non-
 // terminal, each row after the first can omit the non-terminal, as in "-> D E".
@@ -88,6 +88,17 @@ func New(productions string) (*Grammar, error) {
 		g.productions[cur] = append(prods, prod)
 	}
 	return g, nil
+}
+
+// Empty Grammar. The productions string should have one rule per line. A rule
+// has the form "NonTerminal -> A B C" where A,B and C are symbols for either
+// terminals or non-terminals. If there are multiple productions for a non-
+// terminal, each row after the first can omit the non-terminal, as in "-> D E".
+func Empty() *Grammar {
+	return &Grammar{
+		productions: make(map[parlex.Symbol]parlex.Productions),
+		longest:     -1,
+	}
 }
 
 // Productions returns the productions for the given symbol. If the symbol is

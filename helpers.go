@@ -76,3 +76,10 @@ func MustGrammar(g Grammar, err error) Grammar {
 	}
 	return g
 }
+
+func HasNonTerminal(g Grammar, s Symbol) bool {
+	if g == nil {
+		return false
+	}
+	return g.Productions(s) != nil
+}
