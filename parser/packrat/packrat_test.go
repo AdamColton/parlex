@@ -82,8 +82,38 @@ func TestParensPR(t *testing.T) {
 	lxs := lxr.Lex(s)
 	p := New(grmr)
 	assert.NoError(t, err)
-	pn := p.Parse(lxs)
-	assert.NotNil(t, pn)
+	pt := p.Parse(lxs)
+
+	expected, _ := tree.New(`
+    E {
+      T {
+        P {
+          (: '('
+          E {
+            T {
+              int: '1'
+            }
+            op: '+'
+            E {
+              T {
+                int: '2'
+              }
+            }
+          }
+          ): ')'
+        }
+      }
+      op: '*'
+      E {
+        T {
+          int: '3'
+        }
+      }
+    }
+  `)
+
+	pn := pt.(*tree.PN)
+	assert.Equal(t, expected.String(), pn.String())
 }
 
 func TestLeftRecursion(t *testing.T) {
@@ -109,39 +139,35 @@ func TestLeftRecursion(t *testing.T) {
 	pn := p.Parse(lxs)
 	assert.NotNil(t, pn)
 
-	if tpn, ok := pn.(*tree.PN); pn != nil && ok {
-		expected, _ := tree.New(`
+	expected, _ := tree.New(`
+    E {
       E {
         E {
-          E {
-            int: '5'
-          }
-          op: '*'
-          E {
-            (: '('
-            E {
-              E {
-                int: '1'
-              }
-              op: '+'
-              E {
-                int: '2'
-              }
-            }
-            ): ')'
-          }
+          int: '5'
         }
         op: '*'
         E {
-          int: '3'
+          (: '('
+          E {
+            E {
+              int: '1'
+            }
+            op: '+'
+            E {
+              int: '2'
+            }
+          }
+          ): ')'
         }
       }
-    `)
-		if expected.String() != tpn.String() {
-			t.Error(tpn.String())
-		}
-	} else {
-		t.Error("Parse node should be of type *tree.PN")
+      op: '*'
+      E {
+        int: '3'
+      }
+    }
+  `)
+	if expected.String() != pn.(*tree.PN).String() {
+		t.Error(pn.(*tree.PN).String())
 	}
 }
 
@@ -235,21 +261,77 @@ func TestPRNil(t *testing.T) {
   `)
 	assert.NoError(t, err)
 	grmr, err := grammar.New(`
-    E   -> T Gap op Gap E
-        -> T
-    T   -> P
+    E   -> E op E
+        -> P
         -> int
-    P   -> ( Gap E Gap )
-    Gap -> space Gap
-        -> NIL
+        -> Gap E Gap
+    P   -> ( E )
+    Gap -> space
+        ->
   `)
 	assert.NoError(t, err)
 
-	s := "( 1 + 2 )  *  3"
+	s := " ( 1 + 2)  *  3 "
 	lxs := lxr.Lex(s)
 	p := New(grmr)
 	pn := p.Parse(lxs)
-	assert.NotNil(t, pn)
+
+	expected, _ := tree.New(`
+    E {
+      E {
+        Gap {
+          space: ' '
+        }
+        E {
+          P {
+            (: '('
+            E {
+              E {
+                Gap {
+                  space: ' '
+                }
+                E {
+                  int: '1'
+                }
+                Gap {
+                  space: ' '
+                }
+              }
+              op: '+'
+              E {
+                Gap {
+                  space: ' '
+                }
+                E {
+                  int: '2'
+                }
+                Gap
+              }
+            }
+            ): ')'
+          }
+        }
+        Gap {
+          space: '  '
+        }
+      }
+      op: '*'
+      E {
+        Gap {
+          space: '  '
+        }
+        E {
+          int: '3'
+        }
+        Gap {
+          space: ' '
+        }
+      }
+    }
+  `)
+	if expected.String() != pn.(*tree.PN).String() {
+		t.Error(pn.(*tree.PN).String())
+	}
 }
 
 func TestConstructor(t *testing.T) {

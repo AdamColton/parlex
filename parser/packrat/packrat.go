@@ -6,6 +6,8 @@ import (
 	"github.com/adamcolton/parlex/tree"
 )
 
+var printer = func(...interface{}) (int, error) { return 0, nil }
+
 // PR is a Packrat parser
 type PR struct {
 	parlex.Grammar
@@ -105,6 +107,16 @@ func (op *prOp) addProds(root treeMarker) {
 	}
 	op.queued[root] = true
 	for pri, prod := range op.grmr.Productions(root.symbol) {
+
+		if len(prod) == 0 {
+			var nilTreeDef treeDef
+			nilTreeDef.treeMarker = root
+			nilTreeDef.end = root.start
+			nilTreeDef.priority = pri
+			op.addToMemo(nilTreeDef)
+			continue
+		}
+
 		prodStart := treeMarker{
 			symbol: prod[0],
 			start:  root.start,
@@ -136,14 +148,10 @@ func (u *updater) update(op *prOp) {
 		start:  extended.end,
 	}
 
-	if (extended.end < len(op.lxms) && requires.symbol == op.lxms[extended.end].Kind()) || requires.symbol == "NIL" {
+	if extended.end < len(op.lxms) && requires.symbol == op.lxms[extended.end].Kind() {
 		var td treeDef
 		td.treeMarker = requires
-		if requires.symbol == "NIL" {
-			td.end = requires.start
-		} else {
-			td.end = requires.start + 1
-		}
+		td.end = requires.start + 1
 		op.addToMemo(td)
 		(&updater{
 			base:      extended,
@@ -156,6 +164,7 @@ func (u *updater) update(op *prOp) {
 }
 
 func (op *prOp) addToMemo(td treeDef) {
+	printer(td.treeKey, td.priority)
 	old, ok := op.memo[td.treeKey]
 	if !ok {
 		op.memo[td.treeKey] = td
@@ -163,9 +172,18 @@ func (op *prOp) addToMemo(td treeDef) {
 		for _, tp := range op.partials[td.treeMarker] {
 			op.push(tp, td.treeKey)
 		}
-	} else if td.comparePriority(&old, op) == 1 {
+	} else if td.comparePriority(&old, op) == 1 && !op.createsCircularDep(td, &td) {
 		op.memo[td.treeKey] = td
 	}
+}
+
+func (op *prOp) createsCircularDep(node treeDef, root *treeDef) bool {
+	for _, ck := range node.children {
+		if ck == root.treeKey || op.createsCircularDep(op.memo[ck], root) {
+			return true
+		}
+	}
+	return false
 }
 
 //  1: td > td2    which actually means td.priority < td2.priority
@@ -180,8 +198,13 @@ func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
 	}
 	// they should both have the same number of children - equal priority means
 	// equal production
-	for i, ck := range td.children {
-		c1, c2 := op.memo[ck], op.memo[td2.children[i]]
+
+	for i, ck1 := range td.children {
+		ck2 := td2.children[i]
+		if ck1 == ck2 {
+			continue
+		}
+		c1, c2 := op.memo[ck1], op.memo[ck2]
 		p := c1.comparePriority(&c2, op)
 		if p != 0 {
 			return p
@@ -197,14 +220,10 @@ func (op *prOp) nonterm(symbol parlex.Symbol) bool {
 func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
 	if op.nonterm(requires.symbol) {
 		op.partials[requires] = append(op.partials[requires], tp)
-	} else if (requires.start < len(op.lxms) && requires.symbol == op.lxms[requires.start].Kind()) || requires.symbol == "NIL" {
+	} else if requires.start < len(op.lxms) && requires.symbol == op.lxms[requires.start].Kind() {
 		var td treeDef
 		td.treeMarker = requires
-		if requires.symbol == "NIL" {
-			td.end = requires.start
-		} else {
-			td.end = requires.start + 1
-		}
+		td.end = requires.start + 1
 		op.addToMemo(td)
 	}
 
@@ -223,9 +242,14 @@ func (op *prOp) push(tp treePartial, tk treeKey) {
 	}
 }
 
+var depth = 0
+
 func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN {
+	if depth > 10 {
+		panic("far enough")
+	}
 	var lx parlex.Lexeme
-	if lxms[td.start].Kind() == td.symbol {
+	if td.start < len(lxms) && lxms[td.start].Kind() == td.symbol {
 		lx = lxms[td.start]
 	} else {
 		lx = lexeme.New(td.symbol)
@@ -234,11 +258,14 @@ func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN
 		Lexeme: lx,
 		C:      make([]*tree.PN, len(td.children)),
 	}
+	printer(depth, td, pn.Lexeme, len(td.children), td.priority)
+	depth++
 	for i, c := range td.children {
 		ct := memo[c]
 		cpn := ct.toPN(lxms, memo)
 		cpn.P = pn
 		pn.C[i] = cpn
 	}
+	depth--
 	return pn
 }

@@ -90,14 +90,6 @@ func (op *tdOp) tryAccept(pop ParseOp, all bool) acceptResp {
 				end: pop.Pos + 1,
 			}
 		}
-		if pop.Symbol == "NIL" {
-			return acceptResp{
-				PN: &tree.PN{
-					Lexeme: lexeme.New("NIL"),
-				},
-				end: pop.Pos,
-			}
-		}
 	}
 
 	for _, prod := range productions {

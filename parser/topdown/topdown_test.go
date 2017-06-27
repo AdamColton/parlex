@@ -101,7 +101,7 @@ func TestNil(t *testing.T) {
         -> int
     P   -> ( Gap E Gap )
     Gap -> space Gap
-        -> NIL
+        -> 
   `)
 	assert.NoError(t, err)
 
