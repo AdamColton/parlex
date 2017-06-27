@@ -47,7 +47,6 @@ type prOp struct {
 	markers  map[treeMarker][]treeDef
 	partials map[treeMarker][]treePartial
 	queued   map[treeMarker]bool
-	nonterm  map[parlex.Symbol]bool
 	stack    *updater
 }
 
@@ -65,10 +64,6 @@ func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	if len(nts) == 0 {
 		return nil
 	}
-	nonterm := make(map[parlex.Symbol]bool, len(nts))
-	for _, nt := range nts {
-		nonterm[nt] = true
-	}
 	op := &prOp{
 		grmr:     p.Grammar,
 		lxms:     lexemes,
@@ -76,7 +71,6 @@ func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 		markers:  make(map[treeMarker][]treeDef),     // maps marker to treeDef containing that marker
 		partials: make(map[treeMarker][]treePartial), // maps a marker to a treePartial looking for that marker
 		queued:   make(map[treeMarker]bool),
-		nonterm:  nonterm,
 	}
 
 	start := treeMarker{
@@ -188,8 +182,12 @@ func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
 	return 0
 }
 
+func (op *prOp) nonterm(symbol parlex.Symbol) bool {
+	return op.grmr.Productions(symbol) != nil
+}
+
 func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
-	if op.nonterm[requires.symbol] {
+	if op.nonterm(requires.symbol) {
 		op.partials[requires] = append(op.partials[requires], tp)
 	} else if (requires.start < len(op.lxms) && requires.symbol == op.lxms[requires.start].Kind()) || requires.symbol == "NIL" {
 		var td treeDef
