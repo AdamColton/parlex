@@ -1,4 +1,4 @@
-// Package lexer provides a concrete implementation of parlex.Lexeme.
+// Package lexeme provides a concrete implementation of parlex.Lexeme.
 package lexeme
 
 import (

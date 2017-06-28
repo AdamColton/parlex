@@ -27,6 +27,7 @@ type Parser interface {
 	Parse([]Lexeme) ParseNode
 }
 
+// ParserConstructor is a function that takes a Grammar and returns a Parser
 type ParserConstructor func(Grammar) (Parser, error)
 
 // Grammar represents a context free Grammar.

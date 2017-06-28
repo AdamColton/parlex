@@ -5,8 +5,22 @@ import (
 	"strings"
 )
 
-// GrammarString formats a grammar into a string
+// Stringer is a copy of the ubiquitous stringer interface
+type Stringer interface {
+	String() string
+}
+
+// GrammarString converts a Grammar to a string representation. If it implements
+// Stringer, that will be used, otherwise it will use FormatGrammar
 func GrammarString(g Grammar) string {
+	if s, ok := g.(Stringer); ok {
+		return s.String()
+	}
+	return FormatGrammar(g)
+}
+
+// FormatGrammar formats a grammar into a string
+func FormatGrammar(g Grammar) string {
 	longest := -1
 	totalCount := 0
 	nonTerminals := g.NonTerminals()
@@ -77,6 +91,8 @@ func MustGrammar(g Grammar, err error) Grammar {
 	return g
 }
 
+// HasNonTerminal returns true if the given grammar has the given symbol as a
+// non-terminal
 func HasNonTerminal(g Grammar, s Symbol) bool {
 	if g == nil {
 		return false

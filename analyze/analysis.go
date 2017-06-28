@@ -10,6 +10,7 @@ type Analytics struct {
 	first2nonterms map[parlex.Symbol]map[parlex.Symbol]bool
 	nonterm2firsts map[parlex.Symbol][]parlex.Symbol
 	nilInFirst     map[parlex.Symbol]bool
+	Terminals      map[parlex.Symbol]bool
 }
 
 // Analyze a grammar. The grammar is embeded so the return value can be used as
@@ -23,6 +24,7 @@ func Analyze(grammar parlex.Grammar) *Analytics {
 		first2nonterms: make(map[parlex.Symbol]map[parlex.Symbol]bool),
 		nonterm2firsts: make(map[parlex.Symbol][]parlex.Symbol),
 		nilInFirst:     make(map[parlex.Symbol]bool),
+		Terminals:      make(map[parlex.Symbol]bool),
 	}
 	done := make(map[parlex.Symbol]bool)
 
@@ -62,6 +64,7 @@ func (a *Analytics) firsts(s parlex.Symbol, done map[parlex.Symbol]bool) ([]parl
 			if !a.NonTerminal(symbol) {
 				doNext = false
 				fs = append(fs, symbol)
+				a.Terminals[symbol] = true
 			} else {
 				firsts, doNext = a.firsts(symbol, done)
 				nilInFirst = nilInFirst || doNext
@@ -74,8 +77,15 @@ func (a *Analytics) firsts(s parlex.Symbol, done map[parlex.Symbol]bool) ([]parl
 	return fs, nilInFirst
 }
 
+// Contains returns true if the grammar contains the symbol as either a terminal
+// or non-terminal.
+func (a *Analytics) Contains(symbol parlex.Symbol) bool {
+	return a.NonTerminal(symbol) || a.Terminals[symbol]
+}
+
+// NonTerminal returns true if the symbol is a non-terminal in the grammar.
 func (a *Analytics) NonTerminal(symbol parlex.Symbol) bool {
-	return !(a.Productions(symbol) == nil)
+	return a.Productions(symbol) != nil
 }
 
 // HasFirst returns true if first could be the first symbol in a tree with root

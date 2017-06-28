@@ -6,10 +6,8 @@ import (
 	"github.com/adamcolton/parlex/tree"
 )
 
-var printer = func(...interface{}) (int, error) { return 0, nil }
-
-// PR is a Packrat parser
-type PR struct {
+// Packrat is a Packrat parser
+type Packrat struct {
 	parlex.Grammar
 }
 
@@ -54,22 +52,22 @@ type prOp struct {
 }
 
 // New returns a Packrat parser
-func New(grmr parlex.Grammar) *PR {
-	return &PR{
+func New(grmr parlex.Grammar) *Packrat {
+	return &Packrat{
 		Grammar: grmr,
 	}
 }
 
 // Constructor fulfills parlex.ParserConstructor
 func Constructor(grmr parlex.Grammar) (parlex.Parser, error) {
-	return &PR{
+	return &Packrat{
 		Grammar: grmr,
 	}, nil
 }
 
 // Parse fulfills the parlex.Parser. The Packrat parser will try to parse the
 // lexemes.
-func (p *PR) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
+func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	nts := p.Grammar.NonTerminals()
 	if len(nts) == 0 {
 		return nil
@@ -164,7 +162,6 @@ func (u *updater) update(op *prOp) {
 }
 
 func (op *prOp) addToMemo(td treeDef) {
-	printer(td.treeKey, td.priority)
 	old, ok := op.memo[td.treeKey]
 	if !ok {
 		op.memo[td.treeKey] = td
@@ -242,12 +239,7 @@ func (op *prOp) push(tp treePartial, tk treeKey) {
 	}
 }
 
-var depth = 0
-
 func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN {
-	if depth > 10 {
-		panic("far enough")
-	}
 	var lx parlex.Lexeme
 	if td.start < len(lxms) && lxms[td.start].Kind() == td.symbol {
 		lx = lxms[td.start]
@@ -258,14 +250,11 @@ func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN
 		Lexeme: lx,
 		C:      make([]*tree.PN, len(td.children)),
 	}
-	printer(depth, td, pn.Lexeme, len(td.children), td.priority)
-	depth++
 	for i, c := range td.children {
 		ct := memo[c]
 		cpn := ct.toPN(lxms, memo)
 		cpn.P = pn
 		pn.C[i] = cpn
 	}
-	depth--
 	return pn
 }

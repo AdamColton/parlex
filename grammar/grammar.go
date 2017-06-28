@@ -2,7 +2,6 @@ package grammar
 
 import (
 	"errors"
-	"fmt"
 	"github.com/adamcolton/parlex"
 	"strings"
 )
@@ -30,10 +29,12 @@ func trimAndSplit(str string) (prod parlex.Production) {
 
 // productionFromLine takes a line and returns the non-terminal, and production,
 // if the line is malformed, it will return an error. A blank line will not
-// return an error but will return nil for the production. The non-terminal may
-// be blank as in the second line of this example
+// return an error but will return nil for the production. Either side may be
+// blank
 //   E -> E op E
 //     -> int
+//     ->
+//   P ->
 func productionFromLine(line string) (nt parlex.Symbol, prod parlex.Production, err error) {
 	line = strings.TrimSpace(line)
 	if len(line) == 0 {
@@ -133,28 +134,5 @@ func (g *Grammar) Add(from parlex.Symbol, to parlex.Production) {
 // String converts the grammar to a string. It aligns all the ->'s. The output
 // of Grammar.String() can be used to define a copy of the grammar.
 func (g *Grammar) String() string {
-	if g.longest == -1 {
-		g.totalCount = 0
-		for key, prods := range g.productions {
-			if kl := len([]rune(string(key))); kl > g.longest {
-				g.longest = kl
-			}
-			g.totalCount += len(prods)
-		}
-	}
-	format := fmt.Sprintf("%%-%ds -> %%s", g.longest)
-	segs := make([]string, g.totalCount)
-	s := 0
-	for _, key := range g.order {
-		prods := g.productions[key]
-		ks := string(key)
-		for i, prod := range prods {
-			segs[s] = fmt.Sprintf(format, ks, prod)
-			s++
-			if i == 0 {
-				ks = "" //don't print non terminal after first production
-			}
-		}
-	}
-	return strings.Join(segs, "\n")
+	return parlex.FormatGrammar(g)
 }

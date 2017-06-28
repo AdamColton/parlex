@@ -12,6 +12,8 @@ type lrOp struct {
 	hasDirect bool
 }
 
+// RemoveLeftRecursion will convert a grammar with left recursion into one
+// without.
 func RemoveLeftRecursion(grammar parlex.Grammar) parlex.Grammar {
 	nts := grammar.NonTerminals()
 	op := &lrOp{

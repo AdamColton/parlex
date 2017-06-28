@@ -95,7 +95,7 @@ func TestNil(t *testing.T) {
   `)
 	assert.NoError(t, err)
 	grmr, err := grammar.New(`
-    E   -> T Gap op Gap E
+    E   -> T Gap op Gap E Gap
         -> T
     T   -> P
         -> int
