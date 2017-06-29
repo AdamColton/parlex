@@ -12,9 +12,26 @@ import (
 // Lexer implements parlex.Lexer. It can take a string and produce a slice of
 // lexemes.
 type Lexer struct {
-	order   []parlex.Symbol
-	rules   map[parlex.Symbol]*rule
-	longest int
+	order           []parlex.Symbol
+	rules           map[parlex.Symbol]*rule
+	compare         func(e1, p1, e2, p2 int) bool
+	priorityCounter int
+	Error           parlex.Symbol
+}
+
+// ByLength sets the lexer to choose the longest match and use priority to
+// decide a tie. This is the default.
+func (l *Lexer) ByLength() { l.compare = lengthThenPriority }
+
+// ByPriority sets the lexer to choose the highest priority match and use the
+// length to decide a tie.
+func (l *Lexer) ByPriority() { l.compare = priorityThenLength }
+
+func priorityThenLength(e1, p1, e2, p2 int) bool {
+	return p1 < p2 || (p1 == p2 && e1 > e2)
+}
+func lengthThenPriority(e1, p1, e2, p2 int) bool {
+	return e1 > e2 || (e1 == e2 && p1 < p2)
 }
 
 type rule struct {
@@ -24,30 +41,36 @@ type rule struct {
 	priority int
 }
 
-func ruleFromLine(line string) (*rule, error) {
-	m := lexStr.FindStringSubmatch(line)
-	if len(m) == 4 {
-		// if there is no regex, the word becomes the regex
-		var re *regexp.Regexp
-		var err error
-		if m[2] == "" {
-			re, err = regexp.Compile(m[1])
-		} else {
-			re, err = regexp.Compile(m[2])
-		}
-		if err != nil {
-			return nil, err
-		}
-		return &rule{
-			kind:    parlex.Symbol(m[1]),
-			re:      re,
-			discard: m[3] == "-",
-		}, nil
-	}
-	return nil, nil
+type errLexeme struct {
+	*lexeme.Lexeme
+}
+
+func (e *errLexeme) Error() string {
+	return fmt.Sprintf("Lex Error %d:%d) %s", e.L, e.C, e.Value())
 }
 
 var lexStr = regexp.MustCompile(`([^\/\s]+)\s*(?:\/((?:[^\/\\]|(?:\\\/?))+)\/)?\s*(-?)`)
+
+func ruleFromLine(line string) (*rule, error) {
+	m := lexStr.FindStringSubmatch(line)
+	if len(m) != 4 {
+		return nil, nil
+	}
+	i := 2
+	if m[i] == "" {
+		// if there is no regex, the word becomes the regex
+		i = 1
+	}
+	re, err := regexp.Compile(m[i])
+	if err != nil {
+		return nil, err
+	}
+	return &rule{
+		kind:    parlex.Symbol(m[1]),
+		re:      re,
+		discard: m[3] == "-",
+	}, nil
+}
 
 // ErrDuplicateKind will be thrown if a rule is duplicated. Instead, use regexp
 // concatination.
@@ -55,61 +78,62 @@ var ErrDuplicateKind = errors.New("Duplicate Kind")
 
 // New returns a new Lexer
 func New(definitions ...string) (*Lexer, error) {
-	rules := make(map[parlex.Symbol]*rule)
-	var order []parlex.Symbol
-	p := 0
+	l := &Lexer{
+		rules:   make(map[parlex.Symbol]*rule),
+		compare: lengthThenPriority,
+		Error:   "Error",
+	}
 	for _, definition := range definitions {
 		for _, line := range strings.Split(definition, "\n") {
-			rule, err := ruleFromLine(line)
+			r, err := ruleFromLine(line)
 			if err != nil {
 				return nil, err
 			}
-			if rule != nil {
-				if rules[rule.kind] != nil {
-					return nil, ErrDuplicateKind
-				}
-				rule.priority = p
-				p++
-				rules[rule.kind] = rule
-				order = append(order, rule.kind)
+			if r == nil {
+				continue
+			}
+			err = l.addRule(r)
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
 
-	return &Lexer{
-		rules:   rules,
-		longest: -1,
-		order:   order,
-	}, nil
+	return l, nil
 }
 
 // Add a lexer rule
 func (l *Lexer) Add(kind parlex.Symbol, re *regexp.Regexp, discard bool) error {
-	if l.rules[kind] != nil {
-		return ErrDuplicateKind
-	}
-	l.rules[kind] = &rule{
+	return l.addRule(&rule{
 		kind:    kind,
 		re:      re,
 		discard: discard,
+	})
+}
+
+func (l *Lexer) addRule(r *rule) error {
+	if l.rules[r.kind] != nil {
+		return ErrDuplicateKind
 	}
-	l.order = append(l.order, kind)
+	r.priority = l.priorityCounter
+	l.priorityCounter++
+	l.rules[r.kind] = r
+	l.order = append(l.order, r.kind)
 	return nil
 }
 
 // String exports the lexer as a string. The output of String can be used to
 // make a copy of the lexer.
 func (l *Lexer) String() string {
-	if l.longest == -1 {
-		for _, rule := range l.rules {
-			if ln := rule.kind.Len(); ln > l.longest {
-				l.longest = ln
-			}
+	var longest int
+	for _, rule := range l.rules {
+		if ln := rule.kind.Len(); ln > longest {
+			longest = ln
 		}
 	}
 
-	format := fmt.Sprintf("%%-%ds %%s %%s", l.longest)
-	segs := make([]string, len(l.order))
+	format := fmt.Sprintf("%%-%ds %%s %%s", longest)
+	lines := make([]string, len(l.order))
 	for i, kind := range l.order {
 		rule := l.rules[kind]
 		d := ""
@@ -122,82 +146,107 @@ func (l *Lexer) String() string {
 		} else {
 			re = "/" + re + "/"
 		}
-		segs[i] = fmt.Sprintf(format, rule.kind, re, d)
+		lines[i] = fmt.Sprintf(format, rule.kind, re, d)
 	}
-	return strings.Join(segs, "\n")
+	return strings.Join(lines, "\n")
+}
+
+type lexOp struct {
+	*Lexer
+	b        []byte
+	lxs      []parlex.Lexeme
+	next     map[parlex.Symbol][]int
+	errFlag  bool
+	errStart int
+	cur      int
+	lines    int
 }
 
 // Lex takes a string and produces a slice of lexemes that can be consumed by a
 // parser.
 func (l *Lexer) Lex(str string) []parlex.Lexeme {
-	var lxs []parlex.Lexeme
-	b := []byte(str)
-
-	// find the first occurance of every lexer
-	next := make(map[parlex.Symbol][]int)
-	for kind, r := range l.rules {
-		next[kind] = r.re.FindIndex(b)
+	op := &lexOp{
+		Lexer: l,
+		b:     []byte(str),
+		next:  make(map[parlex.Symbol][]int),
 	}
+	op.populateNext()
 
-	errFlag := false
-	errStart := 0
-
-	for cur := 0; cur < len(b); {
-		lx := lexeme.New("")
-		lxEnd := cur
-		lxP := -1
-		discard := false
-
-		// look in next for matches and take the longest one
-		for kind, loc := range next {
-			if loc != nil && loc[0] == cur {
-				// longer always wins
-				// if two are the same length, the lower priorty wins
-				p := l.rules[kind].priority
-				if loc[1] > lxEnd || (loc[1] == lxEnd && p < lxP) {
-					lx.K = parlex.Symbol(kind)
-					lx.V = string(b[loc[0]:loc[1]])
-					lxEnd = loc[1]
-					lxP = p
-					discard = l.rules[kind].discard
-				}
+	for {
+		lx, lxEnd := op.findNextMatch()
+		if lxEnd == op.cur {
+			if !op.errFlag {
+				op.errFlag = true
+				op.errStart = op.cur
 			}
-		}
-
-		if lxEnd == cur { // found no matches of any length
-			if !errFlag { // if we're not already in an error state, start one
-				errFlag = true
-				errStart = cur
-			}
-			cur++
+			op.cur++
 		} else {
-			if errFlag { // if we were in an error state, resolve it by adding the error lexeme
-				val := string(b[errStart:cur])
-				lxs = append(lxs, lexeme.New("Error").Set(val))
-				errFlag = false
+			op.checkError()
+			if !op.rules[lx.K].discard {
+				op.lxs = append(op.lxs, lx)
 			}
-			if !discard {
-				lxs = append(lxs, lx)
-			}
-			cur = lxEnd
+			op.cur = lxEnd
 		}
+		if op.cur >= len(op.b) {
+			break
+		}
+		op.updateNext()
+	}
+	op.checkError()
 
-		for kind, loc := range next {
-			if loc != nil && loc[0] <= cur {
-				loc := l.rules[kind].re.FindIndex(b[cur:])
-				if loc != nil {
-					loc[0] += cur
-					loc[1] += cur
-				}
-				next[kind] = loc
+	return op.lxs
+}
+
+func (op *lexOp) checkError() {
+	if !op.errFlag {
+		return
+	}
+	op.errFlag = false
+	val := string(op.b[op.errStart:op.cur])
+	op.lxs = append(op.lxs, errLexeme{lexeme.New(op.Error).Set(val)})
+}
+
+func (op *lexOp) populateNext() {
+	for kind, r := range op.rules {
+		op.next[kind] = r.re.FindIndex(op.b)
+	}
+}
+
+func (op *lexOp) updateNext() {
+	for kind, loc := range op.next {
+		if loc != nil && loc[0] <= op.cur {
+			loc := op.rules[kind].re.FindIndex(op.b[op.cur:])
+			if loc != nil {
+				loc[0] += op.cur
+				loc[1] += op.cur
+			}
+			op.next[kind] = loc
+		}
+	}
+}
+
+func (op *lexOp) findNextMatch() (*lexeme.Lexeme, int) {
+	lx := &lexeme.Lexeme{}
+	lxEnd := op.cur
+	lxP := -1
+
+	// look in next for matches and take the longest one
+	for kind, loc := range op.next {
+		if loc != nil && loc[0] == op.cur {
+			p := op.rules[kind].priority
+			if op.compare(loc[1], p, lxEnd, lxP) {
+				lx.K = kind
+				lx.V = string(op.b[loc[0]:loc[1]])
+				lxEnd = loc[1]
+				lxP = p
 			}
 		}
 	}
 
-	if errFlag { // if we were in an error state, resolve it by adding the error lexeme
-		val := string(b[errStart:])
-		lxs = append(lxs, lexeme.New("Error").Set(val))
-	}
+	lx.L = op.lines
+	lx.C = strings.LastIndex(string(op.b[:op.cur]), "\n")
+	lx.C = op.cur - lx.C
+	op.lines += strings.Count(lx.V, "\n")
 
-	return lxs
+	return lx, lxEnd
 }

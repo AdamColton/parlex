@@ -44,7 +44,7 @@ func TestLexerString(t *testing.T) {
 }
 
 func TestLex(t *testing.T) {
-	s := "this is a test"
+	s := "this is \na test"
 	lxr, err := New(`
     test
     word  /\w+/

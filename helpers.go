@@ -99,3 +99,17 @@ func HasNonTerminal(g Grammar, s Symbol) bool {
 	}
 	return g.Productions(s) != nil
 }
+
+type LexError interface {
+	Lexeme
+	Error() string
+}
+
+func LexErrors(lexemes []Lexeme) (errs []LexError) {
+	for _, lx := range lexemes {
+		if err, ok := lx.(LexError); ok {
+			errs = append(errs, err)
+		}
+	}
+	return
+}

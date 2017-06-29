@@ -63,5 +63,5 @@ func (l *Lexeme) String() string {
 	if l.V == "" {
 		return fmt.Sprintf("Lexeme{%s%s}", l.K, pos)
 	}
-	return fmt.Sprintf("Lexeme{%s:\"%s\"%s}", l.K, l.V, pos)
+	return fmt.Sprintf("Lexeme{%s:%q%s}", l.K, l.V, pos)
 }
