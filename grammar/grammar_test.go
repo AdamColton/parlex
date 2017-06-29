@@ -2,13 +2,17 @@ package grammar
 
 import (
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
+var A = stringsymbol.Symbol("A")
+var x = stringsymbol.Symbol("x")
+
 func TestGrammarString(t *testing.T) {
 	g1, err := New(`
-    AA -> B C
+    A -> B C
          x
     B -> y
     C -> z 
@@ -21,6 +25,9 @@ func TestGrammarString(t *testing.T) {
 	assert.Equal(t, g1.String(), g2.String())
 
 	assert.Equal(t, g1.String(), parlex.GrammarString(g1))
+	assert.True(t, g1.Productions(A) != nil)
+	assert.True(t, g1.Productions(x) == nil)
+
 }
 
 func TestNil(t *testing.T) {
@@ -36,8 +43,8 @@ func TestNil(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, g)
 
-	nilProd := g.Productions("NIL")
-	if assert.Len(t, nilProd, 1) {
-		assert.Len(t, nilProd[0], 0)
+	nilProd := g.Productions(stringsymbol.Symbol("NIL"))
+	if assert.Equal(t, nilProd.Productions(), 1) {
+		assert.Equal(t, nilProd.Production(0).Symbols(), 0)
 	}
 }

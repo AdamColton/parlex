@@ -2,15 +2,16 @@ package analyze
 
 import (
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 )
 
 // Analytics provides an analysis of a grammar.
 type Analytics struct {
 	parlex.Grammar
-	first2nonterms map[parlex.Symbol]map[parlex.Symbol]bool
-	nonterm2firsts map[parlex.Symbol][]parlex.Symbol
-	nilInFirst     map[parlex.Symbol]bool
-	Terminals      map[parlex.Symbol]bool
+	first2nonterms map[stringsymbol.Symbol]map[stringsymbol.Symbol]bool
+	nonterm2firsts map[stringsymbol.Symbol][]stringsymbol.Symbol
+	nilInFirst     map[stringsymbol.Symbol]bool
+	Terminals      map[stringsymbol.Symbol]bool
 }
 
 // Analyze a grammar. The grammar is embeded so the return value can be used as
@@ -21,22 +22,22 @@ func Analyze(grammar parlex.Grammar) *Analytics {
 	}
 	a := &Analytics{
 		Grammar:        grammar,
-		first2nonterms: make(map[parlex.Symbol]map[parlex.Symbol]bool),
-		nonterm2firsts: make(map[parlex.Symbol][]parlex.Symbol),
-		nilInFirst:     make(map[parlex.Symbol]bool),
-		Terminals:      make(map[parlex.Symbol]bool),
+		first2nonterms: make(map[stringsymbol.Symbol]map[stringsymbol.Symbol]bool),
+		nonterm2firsts: make(map[stringsymbol.Symbol][]stringsymbol.Symbol),
+		nilInFirst:     make(map[stringsymbol.Symbol]bool),
+		Terminals:      make(map[stringsymbol.Symbol]bool),
 	}
-	done := make(map[parlex.Symbol]bool)
+	done := make(map[stringsymbol.Symbol]bool)
 
 	for _, symbol := range a.NonTerminals() {
-		a.firsts(symbol, done)
+		a.firsts(stringsymbol.CastSymbol(symbol), done)
 	}
 
 	for symbol, firsts := range a.nonterm2firsts {
 		for _, first := range firsts {
 			nonterms, ok := a.first2nonterms[first]
 			if !ok {
-				nonterms = make(map[parlex.Symbol]bool)
+				nonterms = make(map[stringsymbol.Symbol]bool)
 				a.first2nonterms[first] = nonterms
 			}
 			nonterms[symbol] = true
@@ -46,21 +47,26 @@ func Analyze(grammar parlex.Grammar) *Analytics {
 	return a
 }
 
-func (a *Analytics) firsts(s parlex.Symbol, done map[parlex.Symbol]bool) ([]parlex.Symbol, bool) {
+func (a *Analytics) firsts(s stringsymbol.Symbol, done map[stringsymbol.Symbol]bool) ([]stringsymbol.Symbol, bool) {
 	if done[s] {
 		return a.nonterm2firsts[s], a.nilInFirst[s]
 	}
 	done[s] = true
-	var fs []parlex.Symbol
+	var fs []stringsymbol.Symbol
 	nilInFirst := false
-	for _, prod := range a.Productions(s) {
-		if len(prod) == 0 {
+	prods := a.Productions(s)
+	ln := prods.Productions()
+	var prod parlex.Production
+	for i := 0; i < ln; i++ {
+		prod = prods.Production(i)
+		ln := prod.Symbols()
+		if ln == 0 {
 			nilInFirst = true
 			continue
 		}
-		var firsts []parlex.Symbol
-		for i, doNext := 0, true; i < len(prod) && doNext; i++ {
-			symbol := prod[i]
+		var firsts []stringsymbol.Symbol
+		for j, doNext := 0, true; j < ln && doNext; j++ {
+			symbol := stringsymbol.CastSymbol(prod.Symbol(j))
 			if !a.NonTerminal(symbol) {
 				doNext = false
 				fs = append(fs, symbol)
@@ -80,7 +86,8 @@ func (a *Analytics) firsts(s parlex.Symbol, done map[parlex.Symbol]bool) ([]parl
 // Contains returns true if the grammar contains the symbol as either a terminal
 // or non-terminal.
 func (a *Analytics) Contains(symbol parlex.Symbol) bool {
-	return a.NonTerminal(symbol) || a.Terminals[symbol]
+	s := stringsymbol.CastSymbol(symbol)
+	return a.NonTerminal(s) || a.Terminals[s]
 }
 
 // NonTerminal returns true if the symbol is a non-terminal in the grammar.
@@ -91,15 +98,17 @@ func (a *Analytics) NonTerminal(symbol parlex.Symbol) bool {
 // HasFirst returns true if first could be the first symbol in a tree with root
 // symbol
 func (a *Analytics) HasFirst(symbol parlex.Symbol, first parlex.Symbol) bool {
-	nonterms, ok := a.first2nonterms[first]
+	f := stringsymbol.CastSymbol(first)
+	s := stringsymbol.CastSymbol(symbol)
+	nonterms, ok := a.first2nonterms[f]
 	if !ok {
-		return symbol == first
+		return s == f
 	}
-	return nonterms[symbol]
+	return nonterms[s]
 }
 
 // HasNilInFirst will return true if it possible to reach an empty production
 // through only left most children.
 func (a *Analytics) HasNilInFirst(symbol parlex.Symbol) bool {
-	return a.nilInFirst[symbol]
+	return a.nilInFirst[stringsymbol.CastSymbol(symbol)]
 }

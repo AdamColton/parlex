@@ -6,6 +6,7 @@ import (
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/packrat"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/adamcolton/parlex/tree"
 	"os"
 	"strconv"
@@ -23,6 +24,15 @@ const lexerRules = `
 
 var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 
+var (
+	nt_E     = stringsymbol.Symbol("E")
+	nt_P     = stringsymbol.Symbol("P")
+	t_space  = stringsymbol.Symbol("space")
+	t_number = stringsymbol.Symbol("number")
+	t_op1    = stringsymbol.Symbol("op1")
+	t_op2    = stringsymbol.Symbol("op2")
+)
+
 const grammarRules = `
   E -> E op2 E
     -> E op1 E
@@ -36,12 +46,12 @@ var grmr = parlex.MustGrammar(grammar.New(grammarRules))
 var prsr = packrat.New(grmr)
 
 var reducer = tree.Reducer{
-	"E": func(node *tree.PN) {
+	nt_E: func(node *tree.PN) {
 		if !node.PromoteSingleChild() {
 			node.PromoteChild(1)
 		}
 	},
-	"P": tree.ReplaceWithChild(1),
+	nt_P: tree.ReplaceWithChild(1),
 }
 
 var runner = parlex.New(lxr, prsr, reducer)
@@ -52,10 +62,10 @@ func main() {
 
 func eval(node parlex.ParseNode) float64 {
 	switch node.Kind() {
-	case "number":
+	case t_number:
 		i, _ := strconv.ParseFloat(node.Value(), 64)
 		return i
-	case "op1", "op2":
+	case t_op1, t_op2:
 		a := eval(node.Child(0))
 		b := eval(node.Child(1))
 		switch node.Value() {

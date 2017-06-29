@@ -3,6 +3,7 @@ package grammar
 import (
 	"errors"
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"strings"
 )
 
@@ -11,18 +12,18 @@ import (
 var ErrBadGrammar = errors.New("Bad Grammar")
 
 // trimAndSplit takes a string of the form "A"
-func trimAndSplit(str string) (prod parlex.Production) {
+func trimAndSplit(str string) (prod stringsymbol.Production) {
 	//TODO: add some tests for this
 	strs := strings.Split(strings.TrimSpace(str), " ")
 	if l := len(strs); l > 0 {
-		symbols := make([]parlex.Symbol, 0, l)
+		symbols := make([]stringsymbol.Symbol, 0, l)
 		for _, str := range strs {
 			str = strings.TrimSpace(str) // trim tabs
 			if str != "" {               // skip empty caused by two spaces in a row
-				symbols = append(symbols, parlex.Symbol(str))
+				symbols = append(symbols, stringsymbol.Symbol(str))
 			}
 		}
-		prod = parlex.Production(symbols)
+		prod = stringsymbol.Production(symbols)
 	}
 	return
 }
@@ -35,7 +36,7 @@ func trimAndSplit(str string) (prod parlex.Production) {
 //     -> int
 //     ->
 //   P ->
-func productionFromLine(line string) (nt parlex.Symbol, prod parlex.Production, err error) {
+func productionFromLine(line string) (nt stringsymbol.Symbol, prod stringsymbol.Production, err error) {
 	line = strings.TrimSpace(line)
 	if len(line) == 0 {
 		return
@@ -44,7 +45,7 @@ func productionFromLine(line string) (nt parlex.Symbol, prod parlex.Production, 
 	if l := len(p); l == 1 {
 		prod = trimAndSplit(p[0])
 	} else if l == 2 {
-		nt = parlex.Symbol(strings.TrimSpace(p[0]))
+		nt = stringsymbol.Symbol(strings.TrimSpace(p[0]))
 		prod = trimAndSplit(p[1])
 	} else if l > 2 {
 		err = ErrBadGrammar
@@ -55,8 +56,8 @@ func productionFromLine(line string) (nt parlex.Symbol, prod parlex.Production, 
 // Grammar implements parlex.Grammar. It represents a set of production rules
 // for a context free grammar.
 type Grammar struct {
-	order       []parlex.Symbol
-	productions map[parlex.Symbol]parlex.Productions
+	order       []stringsymbol.Symbol
+	productions map[stringsymbol.Symbol]stringsymbol.Productions
 	longest     int
 	totalCount  int
 }
@@ -67,10 +68,10 @@ type Grammar struct {
 // terminal, each row after the first can omit the non-terminal, as in "-> D E".
 func New(productions string) (*Grammar, error) {
 	g := &Grammar{
-		productions: make(map[parlex.Symbol]parlex.Productions),
+		productions: make(map[stringsymbol.Symbol]stringsymbol.Productions),
 		longest:     -1,
 	}
-	cur := parlex.Symbol("START") // current non terminal
+	cur := stringsymbol.Symbol("START") // current non terminal
 	for _, line := range strings.Split(productions, "\n") {
 		nt, prod, err := productionFromLine(line)
 		if err != nil {
@@ -97,7 +98,7 @@ func New(productions string) (*Grammar, error) {
 // terminal, each row after the first can omit the non-terminal, as in "-> D E".
 func Empty() *Grammar {
 	return &Grammar{
-		productions: make(map[parlex.Symbol]parlex.Productions),
+		productions: make(map[stringsymbol.Symbol]stringsymbol.Productions),
 		longest:     -1,
 	}
 }
@@ -106,7 +107,17 @@ func Empty() *Grammar {
 // not a non-terminal in the Grammar, nil is returned. It is part of the
 // parlex.Grammer interface.
 func (g *Grammar) Productions(symbol parlex.Symbol) parlex.Productions {
-	return g.productions[symbol]
+	var p parlex.Productions
+	s, ok := symbol.(stringsymbol.Symbol)
+	if ok {
+		p, ok = g.productions[s]
+	} else {
+		p, ok = g.productions[stringsymbol.Symbol(symbol.String())]
+	}
+	if ok {
+		return p
+	}
+	return nil
 }
 
 // NonTerminals returns the non-terminals for the grammar. The first symbol in
@@ -115,20 +126,23 @@ func (g *Grammar) Productions(symbol parlex.Symbol) parlex.Productions {
 // interface.
 func (g *Grammar) NonTerminals() []parlex.Symbol {
 	r := make([]parlex.Symbol, len(g.order))
-	copy(r, g.order)
+	for i := range r {
+		r[i] = g.order[i]
+	}
 	return r
 }
 
 // Add a production to the grammar.
 func (g *Grammar) Add(from parlex.Symbol, to parlex.Production) {
+	f, t := stringsymbol.CastSymbol(from), stringsymbol.CastProduction(to)
 	if to == nil {
-		to = make(parlex.Production, 0)
+		to = make(stringsymbol.Production, 0)
 	}
-	prod, defined := g.productions[from]
+	prod, defined := g.productions[f]
 	if !defined {
-		g.order = append(g.order, from)
+		g.order = append(g.order, f)
 	}
-	g.productions[from] = append(prod, to)
+	g.productions[f] = append(prod, t)
 }
 
 // String converts the grammar to a string. It aligns all the ->'s. The output

@@ -7,6 +7,7 @@ import (
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/topdown"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/adamcolton/parlex/tree"
 	"os"
 	"strings"
@@ -58,14 +59,29 @@ func reduceListWrapper(node *tree.PN) {
 	node.PromoteGrandChildren() // promote rows in ObjectDef
 }
 
+var (
+	nt_Value         = stringsymbol.Symbol("Value")
+	nt_ObjectDef     = stringsymbol.Symbol("ObjectDef")
+	nt_Object        = stringsymbol.Symbol("Object")
+	nt_KeyVal        = stringsymbol.Symbol("KeyVal")
+	nt_Key           = stringsymbol.Symbol("Key")
+	nt_ArrayContents = stringsymbol.Symbol("ArrayContents")
+	nt_Array         = stringsymbol.Symbol("Array")
+	t_space          = stringsymbol.Symbol("space")
+	t_number         = stringsymbol.Symbol("number")
+	t_string         = stringsymbol.Symbol("string")
+	t_bool           = stringsymbol.Symbol("bool")
+	t_null           = stringsymbol.Symbol("null")
+)
+
 var reducer = tree.Reducer{
-	"Value":         tree.PromoteSingleChild,
-	"ObjectDef":     reduceList,
-	"Object":        reduceListWrapper,
-	"KeyVal":        tree.RemoveChild(1), // remove :
-	"Key":           tree.PromoteChildValue(0),
-	"ArrayContents": reduceList,
-	"Array":         reduceListWrapper,
+	nt_Value:         tree.PromoteSingleChild,
+	nt_ObjectDef:     reduceList,
+	nt_Object:        reduceListWrapper,
+	nt_KeyVal:        tree.RemoveChild(1), // remove :
+	nt_Key:           tree.PromoteChildValue(0),
+	nt_ArrayContents: reduceList,
+	nt_Array:         reduceListWrapper,
 }
 
 var runner = parlex.New(lxr, prsr, reducer)
@@ -86,9 +102,9 @@ func main() {
 
 func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
 	switch node.Kind() {
-	case "string", "number", "bool", "null", "Key":
+	case t_string, t_number, t_bool, t_null, nt_Key:
 		buf.WriteString(node.Value())
-	case "Array":
+	case nt_Array:
 		buf.WriteString("[")
 		cpad := pad + "  "
 		prepend := false
@@ -97,7 +113,7 @@ func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
 				buf.WriteString(",")
 			}
 			child := node.Child(i)
-			if child.Kind() == "Array" || child.Kind() == "Object" {
+			if child.Kind() == nt_Array || child.Kind() == nt_Object {
 				buf.WriteString("\n")
 				buf.WriteString(cpad)
 				prepend = true
@@ -109,7 +125,7 @@ func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
 			buf.WriteString(pad)
 		}
 		buf.WriteString("]")
-	case "Object":
+	case nt_Object:
 		if node.Children() == 0 {
 			buf.WriteString("{}")
 			return
@@ -132,7 +148,7 @@ func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
 		buf.WriteString("\n")
 		buf.WriteString(pad)
 		buf.WriteString("}")
-	case "KeyVal":
+	case nt_KeyVal:
 		prettyPrint(node.Child(0), buf, pad)
 		buf.WriteString(": ")
 		prettyPrint(node.Child(1), buf, pad)

@@ -1,7 +1,7 @@
 package simplelexer
 
 import (
-	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -54,12 +54,12 @@ func TestLex(t *testing.T) {
 	lxs := lxr.Lex(s)
 
 	if assert.Equal(t, 7, len(lxs)) {
-		assert.Equal(t, parlex.Symbol("word"), lxs[0].Kind())
+		assert.Equal(t, stringsymbol.Symbol("word"), lxs[0].Kind())
 		assert.Equal(t, "this", lxs[0].Value())
-		assert.Equal(t, parlex.Symbol("space"), lxs[1].Kind())
+		assert.Equal(t, stringsymbol.Symbol("space"), lxs[1].Kind())
 		assert.Equal(t, " ", lxs[1].Value())
 		// confirm that test takes priority over word
-		assert.Equal(t, parlex.Symbol("test"), lxs[6].Kind())
+		assert.Equal(t, stringsymbol.Symbol("test"), lxs[6].Kind())
 		assert.Equal(t, "test", lxs[6].Value())
 	}
 }
@@ -75,10 +75,10 @@ func TestLexDiscard(t *testing.T) {
 	lxs := lxr.Lex(s)
 
 	if assert.Equal(t, 4, len(lxs)) {
-		assert.Equal(t, parlex.Symbol("word"), lxs[1].Kind())
+		assert.Equal(t, stringsymbol.Symbol("word"), lxs[1].Kind())
 		assert.Equal(t, "is", lxs[1].Value())
 		// confirm that test takes priority over word
-		assert.Equal(t, parlex.Symbol("test"), lxs[3].Kind())
+		assert.Equal(t, stringsymbol.Symbol("test"), lxs[3].Kind())
 		assert.Equal(t, "test", lxs[3].Value())
 	}
 }

@@ -91,11 +91,16 @@ func (op *tdOp) accept(key treeKey) *acceptResp {
 func (op *tdOp) tryAccept(key treeKey) *acceptResp {
 	productions := op.Productions(key.Symbol)
 
-	if productions == nil && key.pos < len(op.lxs) && key.Symbol == op.lxs[key.pos].Kind() {
-		return resp(op.lxs[key.pos], key.pos+1)
+	if productions == nil {
+		if key.pos < len(op.lxs) && key.Symbol == op.lxs[key.pos].Kind() {
+			return resp(op.lxs[key.pos], key.pos+1)
+		}
+		return nil
 	}
 
-	for _, prod := range productions {
+	ln := productions.Productions()
+	for i := 0; i < ln; i++ {
+		prod := productions.Production(i)
 		accepts := op.acceptProd(key, prod)
 		if accepts != nil && (!key.all || accepts.end == len(op.lxs)) {
 			return accepts
@@ -106,11 +111,12 @@ func (op *tdOp) tryAccept(key treeKey) *acceptResp {
 }
 
 func (op *tdOp) acceptProd(key treeKey, prod parlex.Production) *acceptResp {
-	children := make([]*tree.PN, len(prod))
+	ln := prod.Symbols()
+	children := make([]*tree.PN, ln)
 	pos := key.pos
 
-	for i, symbol := range prod {
-		resp := op.accept(treeKey{symbol, pos, false})
+	for i := 0; i < ln; i++ {
+		resp := op.accept(treeKey{prod.Symbol(i), pos, false})
 		if resp == nil {
 			return nil
 		}

@@ -104,9 +104,14 @@ func (op *prOp) addProds(root treeMarker) {
 		return
 	}
 	op.queued[root] = true
-	for pri, prod := range op.grmr.Productions(root.symbol) {
-
-		if len(prod) == 0 {
+	prods := op.grmr.Productions(root.symbol)
+	if prods == nil {
+		return
+	}
+	ln := prods.Productions()
+	for pri := 0; pri < ln; pri++ {
+		prod := prods.Production(pri)
+		if prod.Symbols() == 0 {
 			var nilTreeDef treeDef
 			nilTreeDef.treeMarker = root
 			nilTreeDef.end = root.start
@@ -116,7 +121,7 @@ func (op *prOp) addProds(root treeMarker) {
 		}
 
 		prodStart := treeMarker{
-			symbol: prod[0],
+			symbol: prod.Symbol(0),
 			start:  root.start,
 		}
 		var prodPartial treePartial
@@ -136,13 +141,13 @@ func (u *updater) update(op *prOp) {
 	extended.children[ln] = u.extension
 	extended.end = u.extension.end
 
-	if ln+1 == len(extended.prod) {
+	if ln+1 == extended.prod.Symbols() {
 		op.addToMemo(extended.treeDef)
 		return
 	}
 
 	requires := treeMarker{
-		symbol: extended.prod[ln+1],
+		symbol: extended.prod.Symbol(ln + 1),
 		start:  extended.end,
 	}
 

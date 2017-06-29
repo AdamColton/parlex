@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"regexp"
 	"strings"
 )
@@ -11,11 +12,11 @@ import (
 // Lexer implements parlex.Lexer. It can take a string and produce a slice of
 // lexemes.
 type Lexer struct {
-	order           []parlex.Symbol
-	rules           map[parlex.Symbol]*rule
+	order           []stringsymbol.Symbol
+	rules           map[stringsymbol.Symbol]*rule
 	compare         func(e1, p1, e2, p2 int) bool
 	priorityCounter int
-	Error           parlex.Symbol
+	Error           stringsymbol.Symbol
 }
 
 // ByLength sets the lexer to choose the longest match and use priority to
@@ -34,7 +35,7 @@ func lengthThenPriority(e1, p1, e2, p2 int) bool {
 }
 
 type rule struct {
-	kind     parlex.Symbol
+	kind     stringsymbol.Symbol
 	re       *regexp.Regexp
 	discard  bool
 	priority int
@@ -52,7 +53,7 @@ type lexOp struct {
 	*Lexer
 	b        []byte
 	lxs      []parlex.Lexeme
-	next     map[parlex.Symbol][]int
+	next     map[stringsymbol.Symbol][]int
 	errFlag  bool
 	errStart int
 	cur      int
@@ -65,7 +66,7 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 	op := &lexOp{
 		Lexer: l,
 		b:     []byte(str),
-		next:  make(map[parlex.Symbol][]int),
+		next:  make(map[stringsymbol.Symbol][]int),
 	}
 	op.populateNext()
 
@@ -79,7 +80,7 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 			op.cur++
 		} else {
 			op.checkError()
-			if !op.rules[lx.K].discard {
+			if !op.rules[lx.K.(stringsymbol.Symbol)].discard {
 				op.lxs = append(op.lxs, lx)
 			}
 			op.cur = lxEnd

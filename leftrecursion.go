@@ -30,13 +30,15 @@ func checkLeftRecursion(g Grammar, s Symbol, checked, stack map[Symbol]bool) (bo
 	stack[s] = true
 
 	retCheckNext := false
-	for _, prod := range prods {
-		if len(prod) == 0 {
+	var prod Production
+	for i := 0; i < prods.Productions(); i++ {
+		prod = prods.Production(i)
+		if prod.Symbols() == 0 {
 			retCheckNext = true
 			continue
 		}
-		for i, isLR, checkNext := 0, false, true; i < len(prod) && checkNext; i++ {
-			isLR, checkNext = checkLeftRecursion(g, prod[i], checked, stack)
+		for i, isLR, checkNext := 0, false, true; i < prod.Symbols() && checkNext; i++ {
+			isLR, checkNext = checkLeftRecursion(g, prod.Symbol(i), checked, stack)
 			if isLR {
 				return true, false
 			}

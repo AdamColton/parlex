@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"regexp"
 	"strings"
 )
@@ -26,7 +27,7 @@ func New(str string) (*PN, error) {
 			cur = cur.P
 		}
 		if m[2] != "" {
-			kind := parlex.Symbol(m[2])
+			kind := stringsymbol.Symbol(m[2])
 			val := m[3]
 			ch := &PN{
 				Lexeme: lexeme.New(kind).Set(val),
@@ -83,7 +84,7 @@ func (p *PN) string(pad string, s []string) []string {
 	if p == nil {
 		return append(s, pad, "NIL\n") // A.2
 	}
-	s = append(s, pad, string(p.Lexeme.Kind())) // B.2/3
+	s = append(s, pad, p.Lexeme.Kind().String()) // B.2/3
 	if v := p.Lexeme.Value(); v != "" {
 		s = append(s, ": '", p.Lexeme.Value(), "'") // C.3
 	}

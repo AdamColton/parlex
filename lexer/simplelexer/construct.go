@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"regexp"
 	"strings"
 )
@@ -15,7 +16,7 @@ var ErrDuplicateKind = errors.New("Duplicate Kind")
 // New returns a new Lexer
 func New(definitions ...string) (*Lexer, error) {
 	l := &Lexer{
-		rules:   make(map[parlex.Symbol]*rule),
+		rules:   make(map[stringsymbol.Symbol]*rule),
 		compare: lengthThenPriority,
 		Error:   "Error",
 	}
@@ -55,14 +56,14 @@ func ruleFromLine(line string) (*rule, error) {
 		return nil, err
 	}
 	return &rule{
-		kind:    parlex.Symbol(m[1]),
+		kind:    stringsymbol.Symbol(m[1]),
 		re:      re,
 		discard: m[3] == "-",
 	}, nil
 }
 
 // Add a lexer rule
-func (l *Lexer) Add(kind parlex.Symbol, re *regexp.Regexp, discard bool) error {
+func (l *Lexer) Add(kind stringsymbol.Symbol, re *regexp.Regexp, discard bool) error {
 	return l.addRule(&rule{
 		kind:    kind,
 		re:      re,
@@ -86,7 +87,7 @@ func (l *Lexer) addRule(r *rule) error {
 func (l *Lexer) String() string {
 	var longest int
 	for _, rule := range l.rules {
-		if ln := rule.kind.Len(); ln > longest {
+		if ln := parlex.SymLen(rule.kind); ln > longest {
 			longest = ln
 		}
 	}

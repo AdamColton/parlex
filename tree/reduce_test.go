@@ -1,8 +1,7 @@
 package tree
 
 import (
-	"fmt"
-	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -38,12 +37,26 @@ func TestReduce(t *testing.T) {
 	assert.NotNil(t, pn)
 
 	reducer := Reducer{
-		parlex.Symbol("T"): PromoteSingleChild,
-		parlex.Symbol("E"): PromoteSingleChild,
-		parlex.Symbol("P"): func(node *PN) {
+		stringsymbol.Symbol("T"): PromoteSingleChild,
+		stringsymbol.Symbol("E"): PromoteSingleChild,
+		stringsymbol.Symbol("P"): func(node *PN) {
 			node.PromoteChild(1)
 		},
 	}
 	pn = reducer.Reduce(pn).(*PN)
-	fmt.Println(pn)
+
+	expected, _ := New(`
+    E {
+      E {
+        (: '('
+        int: '1'
+        op: '+'
+        int: '2'
+        ): ')'
+      }
+      op: '*'
+      int: '3'
+    }
+  `)
+	assert.Equal(t, expected.String(), pn.String())
 }

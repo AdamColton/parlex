@@ -2,13 +2,14 @@ package grammar
 
 import (
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 )
 
 type lrOp struct {
 	in        parlex.Grammar
 	out       *Grammar
-	done      map[parlex.Symbol]bool
-	cur       parlex.Symbol
+	done      map[stringsymbol.Symbol]bool
+	cur       stringsymbol.Symbol
 	hasDirect bool
 }
 
@@ -19,12 +20,15 @@ func RemoveLeftRecursion(grammar parlex.Grammar) parlex.Grammar {
 	op := &lrOp{
 		in:   grammar,
 		out:  Empty(),
-		done: make(map[parlex.Symbol]bool, len(nts)),
+		done: make(map[stringsymbol.Symbol]bool, len(nts)),
 	}
-	for _, op.cur = range nts {
+	for _, s := range nts {
+		op.cur = stringsymbol.CastSymbol(s)
 		op.hasDirect = false
-		for _, prod := range grammar.Productions(op.cur) {
-			op.safeAdd(prod)
+		prods := grammar.Productions(op.cur)
+		ln := prods.Productions()
+		for i := 0; i < ln; i++ {
+			op.safeAdd(stringsymbol.CastProduction(prods.Production(i)))
 		}
 		if op.hasDirect {
 			op.removeDirectLeftRecursion()
@@ -34,8 +38,8 @@ func RemoveLeftRecursion(grammar parlex.Grammar) parlex.Grammar {
 	return op.out
 }
 
-func (op *lrOp) safeAdd(prod parlex.Production) {
-	var first parlex.Symbol
+func (op *lrOp) safeAdd(prod stringsymbol.Production) {
+	var first stringsymbol.Symbol
 	if len(prod) > 0 {
 		first = prod[0]
 	}
@@ -46,8 +50,12 @@ func (op *lrOp) safeAdd(prod parlex.Production) {
 	}
 
 	tail := prod[1:]
-	for _, lead := range op.in.Productions(first) {
-		newProd := make(parlex.Production, len(lead)+len(tail))
+	prods := op.in.Productions(first)
+	ln := prods.Productions()
+	var lead stringsymbol.Production
+	for i := 0; i < ln; i++ {
+		lead = stringsymbol.CastProduction(prods.Production(i))
+		newProd := make(stringsymbol.Production, len(lead)+len(tail))
 		copy(newProd, lead)
 		copy(newProd[len(lead):], tail)
 		op.safeAdd(newProd)
@@ -72,5 +80,5 @@ func (op *lrOp) removeDirectLeftRecursion() {
 			}
 		}
 	}
-	op.out.Add(newSym, nil)
+	op.out.Add(newSym, make(stringsymbol.Production, 0, 0))
 }

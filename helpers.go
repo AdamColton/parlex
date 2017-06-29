@@ -26,19 +26,19 @@ func FormatGrammar(g Grammar) string {
 	nonTerminals := g.NonTerminals()
 	for _, nt := range nonTerminals {
 		prods := g.Productions(nt)
-		if l := nt.Len(); l > longest {
+		if l := SymLen(nt); l > longest {
 			longest = l
 		}
-		totalCount += len(prods)
+		totalCount += prods.Productions()
 	}
 
 	format := fmt.Sprintf("%%-%ds -> %%s", longest)
 	segs := make([]string, 0, totalCount)
 	for _, nt := range nonTerminals {
 		prods := g.Productions(nt)
-		segs = append(segs, fmt.Sprintf(format, string(nt), prods[0]))
-		for _, prod := range prods[1:] {
-			segs = append(segs, fmt.Sprintf(format, "", prod))
+		segs = append(segs, fmt.Sprintf(format, nt, prods.Production(0)))
+		for i := 1; i < prods.Productions(); i++ {
+			segs = append(segs, fmt.Sprintf(format, "", prods.Production(i)))
 		}
 	}
 	return strings.Join(segs, "\n")
@@ -51,7 +51,7 @@ func LexemeString(ls ...Lexeme) string {
 	}
 	var strs = make([]string, len(ls))
 	for i, l := range ls {
-		k, v := string(l.Kind()), l.Value()
+		k, v := l.Kind().String(), l.Value()
 		if v == "" {
 			strs[i] = k
 		} else {
