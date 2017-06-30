@@ -1,5 +1,27 @@
 package parlex
 
+// Symbol is base of a grammar. A symbol should always return the same string.
+// Two symbols that return the same thing are considered to be the same.
+type Symbol interface {
+	String() string
+}
+
+// Production is a slice of symbols. It is not actually the full grammatic
+// production because it does not contain the left side of the production.
+type Production interface {
+	Symbols() int
+	Symbol(int) Symbol
+	Iter() *ProductionIterator
+}
+
+// Productions are used to represent the set of productions available from a
+// non-terminal
+type Productions interface {
+	Productions() int
+	Production(int) Production
+	Iter() *ProductionsIterator
+}
+
 // Lexeme is a unit of output from a lexer
 type Lexeme interface {
 	Kind() Symbol
