@@ -26,6 +26,15 @@ func (s *Symbol) String() string { return s.set.symb2str[s.val] }
 func (s *Symbol) Idx() int { return s.val }
 
 func (s *Set) Size() int { return len(s.symb2str) }
+func (s *Set) ByIdx(idx int) *Symbol {
+	if idx > len(s.symb2str) {
+		return nil
+	}
+	return &Symbol{
+		val: idx,
+		set: s,
+	}
+}
 
 func (s *Set) Symbol(symbol parlex.Symbol) *Symbol {
 	if cast, ok := symbol.(*Symbol); ok && cast.set == s {

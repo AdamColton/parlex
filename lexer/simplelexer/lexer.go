@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
-	"github.com/adamcolton/parlex/symbol/stringsymbol"
+	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"regexp"
 	"strings"
 )
@@ -12,11 +12,12 @@ import (
 // Lexer implements parlex.Lexer. It can take a string and produce a slice of
 // lexemes.
 type Lexer struct {
-	order           []stringsymbol.Symbol
-	rules           map[stringsymbol.Symbol]*rule
+	order           []int
+	rules           []*rule
 	compare         func(e1, p1, e2, p2 int) bool
 	priorityCounter int
-	Error           stringsymbol.Symbol
+	Error           string
+	set             *setsymbol.Set
 }
 
 // ByLength sets the lexer to choose the longest match and use priority to
@@ -35,7 +36,7 @@ func lengthThenPriority(e1, p1, e2, p2 int) bool {
 }
 
 type rule struct {
-	kind     stringsymbol.Symbol
+	kind     int
 	re       *regexp.Regexp
 	discard  bool
 	priority int
@@ -53,7 +54,7 @@ type lexOp struct {
 	*Lexer
 	b        []byte
 	lxs      []parlex.Lexeme
-	next     map[stringsymbol.Symbol][]int
+	next     [][]int
 	errFlag  bool
 	errStart int
 	cur      int
@@ -66,7 +67,6 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 	op := &lexOp{
 		Lexer: l,
 		b:     []byte(str),
-		next:  make(map[stringsymbol.Symbol][]int),
 	}
 	op.populateNext()
 
@@ -80,7 +80,7 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 			op.cur++
 		} else {
 			op.checkError()
-			if !op.rules[lx.K.(stringsymbol.Symbol)].discard {
+			if !op.rules[lx.K.(*setsymbol.Symbol).Idx()].discard {
 				op.lxs = append(op.lxs, lx)
 			}
 			op.cur = lxEnd
@@ -101,10 +101,13 @@ func (op *lexOp) checkError() {
 	}
 	op.errFlag = false
 	val := string(op.b[op.errStart:op.cur])
-	op.lxs = append(op.lxs, errLexeme{lexeme.New(op.Error).Set(val)})
+	errKind := op.set.Str(op.Error)
+	lxm := lexeme.New(errKind).Set(val)
+	op.lxs = append(op.lxs, errLexeme{lxm})
 }
 
 func (op *lexOp) populateNext() {
+	op.next = make([][]int, len(op.rules))
 	for kind, r := range op.rules {
 		op.next[kind] = r.re.FindIndex(op.b)
 	}
@@ -133,7 +136,7 @@ func (op *lexOp) findNextMatch() (*lexeme.Lexeme, int) {
 		if loc != nil && loc[0] == op.cur {
 			p := op.rules[kind].priority
 			if op.compare(loc[1], p, lxEnd, lxP) {
-				lx.K = kind
+				lx.K = op.set.ByIdx(kind)
 				lx.V = string(op.b[loc[0]:loc[1]])
 				lxEnd = loc[1]
 				lxP = p
