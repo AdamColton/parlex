@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/adamcolton/parlex/tree"
 )
 
@@ -37,11 +38,11 @@ func (t *Topdown) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 		lxs:     lexemes,
 		memo:    make(map[treeKey]*acceptResp),
 	}
-	return op.accept(treeKey{nts[0], 0, true}).node()
+	return op.accept(treeKey{stringsymbol.Symbol(nts[0].String()), 0, true}).node()
 }
 
 type treeKey struct {
-	parlex.Symbol
+	stringsymbol.Symbol
 	pos int
 	all bool
 }
@@ -92,7 +93,7 @@ func (op *tdOp) tryAccept(key treeKey) *acceptResp {
 	productions := op.Productions(key.Symbol)
 
 	if productions == nil {
-		if key.pos < len(op.lxs) && key.Symbol == op.lxs[key.pos].Kind() {
+		if key.pos < len(op.lxs) && key.Symbol.String() == op.lxs[key.pos].Kind().String() {
 			return resp(op.lxs[key.pos], key.pos+1)
 		}
 		return nil
@@ -116,7 +117,8 @@ func (op *tdOp) acceptProd(key treeKey, prod parlex.Production) *acceptResp {
 	pos := key.pos
 
 	for i := 0; i < ln; i++ {
-		resp := op.accept(treeKey{prod.Symbol(i), pos, false})
+		symbol := stringsymbol.Symbol(prod.Symbol(i).String())
+		resp := op.accept(treeKey{symbol, pos, false})
 		if resp == nil {
 			return nil
 		}
