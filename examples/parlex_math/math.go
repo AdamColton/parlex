@@ -6,7 +6,6 @@ import (
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/packrat"
-	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/adamcolton/parlex/tree"
 	"os"
 	"strconv"
@@ -37,12 +36,12 @@ var grmr = parlex.MustGrammar(grammar.New(grammarRules))
 var prsr = packrat.New(grmr)
 
 var reducer = tree.Reducer{
-	stringsymbol.Symbol("E"): func(node *tree.PN) {
+	"E": func(node *tree.PN) {
 		if !node.PromoteSingleChild() {
 			node.PromoteChild(1)
 		}
 	},
-	stringsymbol.Symbol("P"): tree.ReplaceWithChild(1),
+	"P": tree.ReplaceWithChild(1),
 }
 
 var runner = parlex.New(lxr, prsr, reducer)

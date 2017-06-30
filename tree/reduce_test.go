@@ -1,7 +1,6 @@
 package tree
 
 import (
-	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -37,9 +36,9 @@ func TestReduce(t *testing.T) {
 	assert.NotNil(t, pn)
 
 	reducer := Reducer{
-		stringsymbol.Symbol("T"): PromoteSingleChild,
-		stringsymbol.Symbol("E"): PromoteSingleChild,
-		stringsymbol.Symbol("P"): func(node *PN) {
+		"T": PromoteSingleChild,
+		"E": PromoteSingleChild,
+		"P": func(node *PN) {
 			node.PromoteChild(1)
 		},
 	}

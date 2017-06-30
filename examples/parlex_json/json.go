@@ -7,7 +7,6 @@ import (
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/topdown"
-	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/adamcolton/parlex/tree"
 	"os"
 	"strings"
@@ -60,13 +59,13 @@ func reduceListWrapper(node *tree.PN) {
 }
 
 var reducer = tree.Reducer{
-	stringsymbol.Symbol("Value"):         tree.PromoteSingleChild,
-	stringsymbol.Symbol("ObjectDef"):     reduceList,
-	stringsymbol.Symbol("Object"):        reduceListWrapper,
-	stringsymbol.Symbol("KeyVal"):        tree.RemoveChild(1), // remove :
-	stringsymbol.Symbol("Key"):           tree.PromoteChildValue(0),
-	stringsymbol.Symbol("ArrayContents"): reduceList,
-	stringsymbol.Symbol("Array"):         reduceListWrapper,
+	"Value":         tree.PromoteSingleChild,
+	"ObjectDef":     reduceList,
+	"Object":        reduceListWrapper,
+	"KeyVal":        tree.RemoveChild(1), // remove :
+	"Key":           tree.PromoteChildValue(0),
+	"ArrayContents": reduceList,
+	"Array":         reduceListWrapper,
 }
 
 var runner = parlex.New(lxr, prsr, reducer)

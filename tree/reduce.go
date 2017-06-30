@@ -11,10 +11,10 @@ type Reduction func(node *PN)
 // Reducer is used to reduce a ParseTree to something more useful, generally
 // clearing away symbols that are now represeneted by the tree structure. It
 // implements parlex.Reducer.
-type Reducer map[parlex.Symbol]Reduction
+type Reducer map[string]Reduction
 
 // Add a reduction.
-func (r Reducer) Add(symbol parlex.Symbol, reduction Reduction) {
+func (r Reducer) Add(symbol string, reduction Reduction) {
 	r[symbol] = reduction
 }
 
@@ -49,7 +49,7 @@ func (r Reducer) RawReduce(node parlex.ParseNode) *PN {
 		cp.C[i] = r.RawReduce(node.Child(i))
 	}
 
-	if reduction := r[cp.Kind()]; reduction != nil {
+	if reduction := r[cp.Kind().String()]; reduction != nil {
 		reduction(cp)
 	}
 
