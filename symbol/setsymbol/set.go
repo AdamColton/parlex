@@ -36,7 +36,21 @@ func (s *Set) ByIdx(idx int) *Symbol {
 	}
 }
 
+func (s *Set) Idx(symbol parlex.Symbol) int {
+	if cast, ok := symbol.(*Symbol); ok && cast.set == s {
+		return cast.val
+	}
+	idx, found := s.str2sym[symbol.String()]
+	if !found {
+		return -1
+	}
+	return idx
+}
+
 func (s *Set) Symbol(symbol parlex.Symbol) *Symbol {
+	if symbol == nil {
+		return nil
+	}
 	if cast, ok := symbol.(*Symbol); ok && cast.set == s {
 		return cast
 	}
@@ -135,6 +149,22 @@ type Productions struct {
 	set   *Set
 }
 
+func (p *Productions) String() string {
+	if p == nil {
+		return "{nil}"
+	}
+	strsout := make([]string, len(p.prods))
+	for i, prod := range p.prods {
+		strsin := make([]string, len(prod))
+		for j, idx := range prod {
+			strsin[j] = p.set.symb2str[idx]
+		}
+		strsout[i] = "[" + strings.Join(strsin, ", ") + "]"
+	}
+
+	return "{" + strings.Join(strsout, " ") + "}"
+}
+
 func (s *Set) Productions(productions ...parlex.Production) *Productions {
 	p := &Productions{
 		prods: make([][]int, len(productions)),
@@ -179,4 +209,10 @@ func (p *Productions) Production(i int) parlex.Production {
 		}
 	}
 	return nil
+}
+
+func (p *Productions) AddProductions(productions ...parlex.Production) {
+	for _, prod := range productions {
+		p.prods = append(p.prods, p.set.CastProduction(prod).symbs)
+	}
 }

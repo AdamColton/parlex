@@ -6,11 +6,13 @@ import (
 )
 
 func TestRemoveLeftRecursion(t *testing.T) {
+	//t.Skip()
 	grmr, err := New(`
     E -> E op E
       -> ( E )
       -> int
   `)
+	assert.Len(t, grmr.NonTerminals(), 1)
 	assert.NoError(t, err)
 	noRecur := RemoveLeftRecursion(grmr)
 	expected, err := New(`
@@ -20,7 +22,7 @@ func TestRemoveLeftRecursion(t *testing.T) {
        -> 
   `)
 	assert.NoError(t, err)
-	assert.Equal(t, expected.String(), noRecur.(*Grammar).String())
+	assert.Equal(t, expected.String(), noRecur.String())
 
 	grmr, err = New(`
     A -> B C
@@ -40,5 +42,5 @@ func TestRemoveLeftRecursion(t *testing.T) {
     C' -> 
     `)
 	assert.NoError(t, err)
-	assert.Equal(t, expected.String(), noRecur.(*Grammar).String())
+	assert.Equal(t, expected.String(), noRecur.String())
 }

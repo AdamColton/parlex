@@ -28,6 +28,8 @@ func TestGrammarString(t *testing.T) {
 	assert.True(t, g1.Productions(A) != nil)
 	assert.True(t, g1.Productions(x) == nil)
 
+	assert.Equal(t, "x", g1.Productions(A).Production(1).Symbol(0).String())
+
 }
 
 func TestNil(t *testing.T) {
@@ -42,9 +44,19 @@ func TestNil(t *testing.T) {
   `)
 	assert.NoError(t, err)
 	assert.NotNil(t, g)
-
+	assert.NotEqual(t, -1, g.set.Idx(stringsymbol.Symbol("NIL")))
 	nilProd := g.Productions(stringsymbol.Symbol("NIL"))
 	if assert.Equal(t, nilProd.Productions(), 1) {
 		assert.Equal(t, nilProd.Production(0).Symbols(), 0)
 	}
+}
+
+func TestBasic(t *testing.T) {
+	grmr, err := New(`
+    E -> E op E
+      -> ( E )
+      -> int
+  `)
+	assert.Len(t, grmr.NonTerminals(), 1)
+	assert.NoError(t, err)
 }
