@@ -24,15 +24,6 @@ const lexerRules = `
 
 var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 
-var (
-	nt_E     = stringsymbol.Symbol("E")
-	nt_P     = stringsymbol.Symbol("P")
-	t_space  = stringsymbol.Symbol("space")
-	t_number = stringsymbol.Symbol("number")
-	t_op1    = stringsymbol.Symbol("op1")
-	t_op2    = stringsymbol.Symbol("op2")
-)
-
 const grammarRules = `
   E -> E op2 E
     -> E op1 E
@@ -46,12 +37,12 @@ var grmr = parlex.MustGrammar(grammar.New(grammarRules))
 var prsr = packrat.New(grmr)
 
 var reducer = tree.Reducer{
-	nt_E: func(node *tree.PN) {
+	stringsymbol.Symbol("E"): func(node *tree.PN) {
 		if !node.PromoteSingleChild() {
 			node.PromoteChild(1)
 		}
 	},
-	nt_P: tree.ReplaceWithChild(1),
+	stringsymbol.Symbol("P"): tree.ReplaceWithChild(1),
 }
 
 var runner = parlex.New(lxr, prsr, reducer)
@@ -61,11 +52,11 @@ func main() {
 }
 
 func eval(node parlex.ParseNode) float64 {
-	switch node.Kind() {
-	case t_number:
+	switch node.Kind().String() {
+	case "number":
 		i, _ := strconv.ParseFloat(node.Value(), 64)
 		return i
-	case t_op1, t_op2:
+	case "op1", "op2":
 		a := eval(node.Child(0))
 		b := eval(node.Child(1))
 		switch node.Value() {
