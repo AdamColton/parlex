@@ -99,10 +99,8 @@ func (op *tdOp) tryAccept(key treeKey) *acceptResp {
 		return nil
 	}
 
-	ln := productions.Productions()
-	for i := 0; i < ln; i++ {
-		prod := productions.Production(i)
-		accepts := op.acceptProd(key, prod)
+	for i := productions.Iter(); i.Next(); {
+		accepts := op.acceptProd(key, i.Production)
 		if accepts != nil && (!key.all || accepts.end == len(op.lxs)) {
 			return accepts
 		}
@@ -112,17 +110,16 @@ func (op *tdOp) tryAccept(key treeKey) *acceptResp {
 }
 
 func (op *tdOp) acceptProd(key treeKey, prod parlex.Production) *acceptResp {
-	ln := prod.Symbols()
-	children := make([]*tree.PN, ln)
+	children := make([]*tree.PN, prod.Symbols())
 	pos := key.pos
 
-	for i := 0; i < ln; i++ {
-		symbol := stringsymbol.Symbol(prod.Symbol(i).String())
+	for i := prod.Iter(); i.Next(); {
+		symbol := stringsymbol.Symbol(i.Symbol.String())
 		resp := op.accept(treeKey{symbol, pos, false})
 		if resp == nil {
 			return nil
 		}
-		children[i], pos = resp.PN, resp.end
+		children[i.Idx], pos = resp.PN, resp.end
 	}
 
 	return resp(lexeme.New(key.Symbol), pos, children...)

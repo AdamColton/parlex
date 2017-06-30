@@ -54,19 +54,14 @@ func (a *Analytics) firsts(s stringsymbol.Symbol, done map[stringsymbol.Symbol]b
 	done[s] = true
 	var fs []stringsymbol.Symbol
 	nilInFirst := false
-	prods := a.Productions(s)
-	ln := prods.Productions()
-	var prod parlex.Production
-	for i := 0; i < ln; i++ {
-		prod = prods.Production(i)
-		ln := prod.Symbols()
-		if ln == 0 {
+	for i := a.Productions(s).Iter(); i.Next(); {
+		if i.Symbols() == 0 {
 			nilInFirst = true
 			continue
 		}
 		var firsts []stringsymbol.Symbol
-		for j, doNext := 0, true; j < ln && doNext; j++ {
-			symbol := stringsymbol.CastSymbol(prod.Symbol(j))
+		for j, doNext := i.Iter(), true; j.Next() && doNext; {
+			symbol := stringsymbol.CastSymbol(j.Symbol)
 			if !a.NonTerminal(symbol) {
 				doNext = false
 				fs = append(fs, symbol)

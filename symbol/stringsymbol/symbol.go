@@ -18,6 +18,12 @@ func CastSymbol(symbol parlex.Symbol) Symbol {
 
 type Production []Symbol
 
+func (p Production) Iter() *parlex.ProductionIterator {
+	return &parlex.ProductionIterator{
+		Production: p,
+	}
+}
+
 func CastProduction(production parlex.Production) Production {
 	if p, ok := production.(Production); ok {
 		return p
@@ -57,6 +63,12 @@ func (p Production) Symbol(i int) parlex.Symbol {
 }
 
 type Productions []Production
+
+func (p Productions) Iter() *parlex.ProductionsIterator {
+	return &parlex.ProductionsIterator{
+		Productions: p,
+	}
+}
 
 func CastProductions(productions parlex.Productions) Productions {
 	if p, ok := productions.(Productions); ok {

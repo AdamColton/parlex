@@ -21,6 +21,12 @@ func (p production) Symbol(i int) Symbol {
 	return nil
 }
 
+func (p production) Iter() *ProductionIterator {
+	return &ProductionIterator{
+		Production: p,
+	}
+}
+
 type productions []production
 
 func (p productions) Productions() int {
@@ -32,6 +38,12 @@ func (p productions) Production(i int) Production {
 		return p[i]
 	}
 	return nil
+}
+
+func (p productions) Iter() *ProductionsIterator {
+	return &ProductionsIterator{
+		Productions: p,
+	}
 }
 
 type lx struct {

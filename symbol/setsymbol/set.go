@@ -94,6 +94,12 @@ func (s *Set) Production(symbols ...parlex.Symbol) *Production {
 	return p
 }
 
+func (p *Production) Iter() *parlex.ProductionIterator {
+	return &parlex.ProductionIterator{
+		Production: p,
+	}
+}
+
 func (p *Production) AddSymbols(symbols ...parlex.Symbol) {
 	for _, symbol := range symbols {
 		p.symbs = append(p.symbs, p.set.Symbol(symbol).val)
@@ -147,6 +153,12 @@ func (p *Production) Symbol(i int) parlex.Symbol {
 type Productions struct {
 	prods [][]int
 	set   *Set
+}
+
+func (p *Productions) Iter() *parlex.ProductionsIterator {
+	return &parlex.ProductionsIterator{
+		Productions: p,
+	}
 }
 
 func (p *Productions) String() string {

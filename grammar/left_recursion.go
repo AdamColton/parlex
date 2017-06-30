@@ -27,10 +27,8 @@ func RemoveLeftRecursion(grammar parlex.Grammar) *Grammar {
 	for _, s := range nts {
 		op.cur = op.set.Symbol(s)
 		op.hasDirect = false
-		prods := grammar.Productions(op.cur)
-		ln := prods.Productions()
-		for i := 0; i < ln; i++ {
-			op.safeAdd(op.set.CastProduction(prods.Production(i)))
+		for i := grammar.Productions(op.cur).Iter(); i.Next(); {
+			op.safeAdd(op.set.CastProduction(i.Production))
 		}
 		if op.hasDirect {
 			op.removeDirectLeftRecursion()
@@ -58,20 +56,13 @@ func (op *lrOp) safeAdd(prod *setsymbol.Production) {
 		return
 	}
 
-	tail := op.getTail(prod)
-	prods := op.in.Productions(first)
-	ln := prods.Productions()
-	var lead *setsymbol.Production
-	for i := 0; i < ln; i++ {
-		lead = op.set.CastProduction(prods.Production(i))
+	for i := op.in.Productions(first).Iter(); i.Next(); {
 		newProd := op.set.Production()
-		ln := lead.Symbols()
-		for j := 0; j < ln; j++ {
-			newProd.AddSymbols(lead.Symbol(j))
+		for lead := i.Production.Iter(); lead.Next(); {
+			newProd.AddSymbols(lead.Symbol)
 		}
-		ln = tail.Symbols()
-		for j := 0; j < ln; j++ {
-			newProd.AddSymbols(tail.Symbol(j))
+		for tail := op.getTail(prod).Iter(); tail.Next(); {
+			newProd.AddSymbols(tail.Symbol)
 		}
 		op.safeAdd(newProd)
 	}
@@ -95,9 +86,8 @@ func (op *lrOp) removeDirectLeftRecursion() {
 
 	prods := op.out.productions[op.cur.Idx()]
 	op.out.productions[op.cur.Idx()] = nil
-	ln := prods.Productions()
-	for i := 0; i < ln; i++ {
-		prod := prods.Production(i).(*setsymbol.Production)
+	for i := prods.Iter(); i.Next(); {
+		prod := i.Production.(*setsymbol.Production)
 		if prod.Symbols() == 0 || prod.Symbol(0).(*setsymbol.Symbol).Idx() != op.cur.Idx() {
 			prod.AddSymbols(newSym)
 			op.directAdd(op.cur, prod)

@@ -36,9 +36,11 @@ func FormatGrammar(g Grammar) string {
 	segs := make([]string, 0, totalCount)
 	for _, nt := range nonTerminals {
 		prods := g.Productions(nt)
-		segs = append(segs, fmt.Sprintf(format, nt, prods.Production(0)))
-		for i := 1; i < prods.Productions(); i++ {
-			segs = append(segs, fmt.Sprintf(format, "", prods.Production(i)))
+		iter := prods.Iter()
+		iter.Next()
+		segs = append(segs, fmt.Sprintf(format, nt, iter.Production))
+		for iter.Next() {
+			segs = append(segs, fmt.Sprintf(format, "", iter.Production))
 		}
 	}
 	return strings.Join(segs, "\n")
