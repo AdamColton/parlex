@@ -3,6 +3,7 @@ package packrat
 import (
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
+	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/adamcolton/parlex/tree"
 )
 
@@ -12,7 +13,7 @@ type Packrat struct {
 }
 
 type treeMarker struct {
-	symbol parlex.Symbol
+	symbol stringsymbol.Symbol
 	start  int
 }
 
@@ -82,7 +83,7 @@ func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	}
 
 	start := treeMarker{
-		symbol: nts[0],
+		symbol: stringsymbol.Symbol(nts[0].String()),
 	}
 	op.addProds(start)
 
@@ -93,7 +94,7 @@ func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	}
 
 	var accept treeKey
-	accept.symbol = nts[0]
+	accept.symbol = stringsymbol.Symbol(nts[0].String())
 	accept.end = len(lexemes)
 	accepted := op.memo[accept]
 	return accepted.toPN(lexemes, op.memo)
@@ -121,7 +122,7 @@ func (op *prOp) addProds(root treeMarker) {
 		}
 
 		prodStart := treeMarker{
-			symbol: prod.Symbol(0),
+			symbol: stringsymbol.Symbol(prod.Symbol(0).String()),
 			start:  root.start,
 		}
 		var prodPartial treePartial
@@ -147,11 +148,11 @@ func (u *updater) update(op *prOp) {
 	}
 
 	requires := treeMarker{
-		symbol: extended.prod.Symbol(ln + 1),
+		symbol: stringsymbol.Symbol(extended.prod.Symbol(ln + 1).String()),
 		start:  extended.end,
 	}
 
-	if extended.end < len(op.lxms) && requires.symbol == op.lxms[extended.end].Kind() {
+	if extended.end < len(op.lxms) && requires.symbol.String() == op.lxms[extended.end].Kind().String() {
 		var td treeDef
 		td.treeMarker = requires
 		td.end = requires.start + 1
@@ -222,7 +223,7 @@ func (op *prOp) nonterm(symbol parlex.Symbol) bool {
 func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
 	if op.nonterm(requires.symbol) {
 		op.partials[requires] = append(op.partials[requires], tp)
-	} else if requires.start < len(op.lxms) && requires.symbol == op.lxms[requires.start].Kind() {
+	} else if requires.start < len(op.lxms) && requires.symbol.String() == op.lxms[requires.start].Kind().String() {
 		var td treeDef
 		td.treeMarker = requires
 		td.end = requires.start + 1
@@ -246,7 +247,7 @@ func (op *prOp) push(tp treePartial, tk treeKey) {
 
 func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN {
 	var lx parlex.Lexeme
-	if td.start < len(lxms) && lxms[td.start].Kind() == td.symbol {
+	if td.start < len(lxms) && lxms[td.start].Kind().String() == td.symbol.String() {
 		lx = lxms[td.start]
 	} else {
 		lx = lexeme.New(td.symbol)
