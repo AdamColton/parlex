@@ -2,6 +2,7 @@ package setsymbol
 
 import (
 	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/lexeme"
 	"strings"
 )
 
@@ -254,8 +255,10 @@ func (s *Set) LoadGrammar(grammar parlex.Grammar) {
 	}
 }
 
-func (s *Set) LoadLexemes(lexemes []parlex.Lexeme) {
-	for _, lx := range lexemes {
-		s.Symbol(lx.Kind())
+func (s *Set) LoadLexemes(lexemes []parlex.Lexeme) []*lexeme.Lexeme {
+	out := make([]*lexeme.Lexeme, len(lexemes))
+	for i, lx := range lexemes {
+		out[i] = lexeme.New(s.Symbol(lx.Kind())).Set(lx.Value()).At(lx.Pos())
 	}
+	return out
 }

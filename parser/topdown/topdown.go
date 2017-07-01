@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
-	"github.com/adamcolton/parlex/symbol/stringsymbol"
+	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"github.com/adamcolton/parlex/tree"
 )
 
@@ -33,18 +33,21 @@ func (t *Topdown) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	if len(nts) == 0 {
 		return nil
 	}
+	set := setsymbol.New()
+	set.LoadGrammar(t.Grammar)
 	op := &tdOp{
 		Topdown: t,
-		lxs:     lexemes,
+		lxs:     set.LoadLexemes(lexemes),
 		memo:    make(map[treeKey]*acceptResp),
+		set:     set,
 	}
-	return op.accept(treeKey{stringsymbol.Symbol(nts[0].String()), 0, true}).node()
+	start := op.set.Symbol(nts[0]).Idx()
+	return op.accept(treeKey{start, 0}, true).node()
 }
 
 type treeKey struct {
-	stringsymbol.Symbol
+	idx int
 	pos int
-	all bool
 }
 
 type acceptResp struct {
@@ -72,15 +75,16 @@ func (a *acceptResp) node() *tree.PN {
 // top-down parse operation
 type tdOp struct {
 	*Topdown
-	lxs  []parlex.Lexeme
+	lxs  []*lexeme.Lexeme
 	memo map[treeKey]*acceptResp
+	set  *setsymbol.Set
 }
 
-func (op *tdOp) accept(key treeKey) *acceptResp {
+func (op *tdOp) accept(key treeKey, all bool) *acceptResp {
 	if resp, ok := op.memo[key]; ok {
 		return resp
 	}
-	resp := op.tryAccept(key)
+	resp := op.tryAccept(key, all)
 	op.memo[key] = resp
 	return resp
 }
@@ -89,11 +93,12 @@ func (op *tdOp) accept(key treeKey) *acceptResp {
 // position. If end == -1, then it will return the first accepting rule. If
 // end > -1, it the rule must end on that position. This is used at the outer
 // most level to assure accept consumes all the lexemes
-func (op *tdOp) tryAccept(key treeKey) *acceptResp {
-	productions := op.Productions(key.Symbol)
+func (op *tdOp) tryAccept(key treeKey, all bool) *acceptResp {
+	symbol := op.set.ByIdx(key.idx)
+	productions := op.Productions(symbol)
 
 	if productions == nil {
-		if key.pos < len(op.lxs) && key.Symbol.String() == op.lxs[key.pos].Kind().String() {
+		if key.pos < len(op.lxs) && key.idx == op.lxs[key.pos].K.(*setsymbol.Symbol).Idx() {
 			return resp(op.lxs[key.pos], key.pos+1)
 		}
 		return nil
@@ -101,7 +106,7 @@ func (op *tdOp) tryAccept(key treeKey) *acceptResp {
 
 	for i := productions.Iter(); i.Next(); {
 		accepts := op.acceptProd(key, i.Production)
-		if accepts != nil && (!key.all || accepts.end == len(op.lxs)) {
+		if accepts != nil && (!all || accepts.end == len(op.lxs)) {
 			return accepts
 		}
 	}
@@ -114,13 +119,14 @@ func (op *tdOp) acceptProd(key treeKey, prod parlex.Production) *acceptResp {
 	pos := key.pos
 
 	for i := prod.Iter(); i.Next(); {
-		symbol := stringsymbol.Symbol(i.Symbol.String())
-		resp := op.accept(treeKey{symbol, pos, false})
+		symbol := op.set.Symbol(i.Symbol)
+		resp := op.accept(treeKey{symbol.Idx(), pos}, false)
 		if resp == nil {
 			return nil
 		}
 		children[i.Idx], pos = resp.PN, resp.end
 	}
 
-	return resp(lexeme.New(key.Symbol), pos, children...)
+	symbol := op.set.ByIdx(key.idx)
+	return resp(lexeme.New(symbol), pos, children...)
 }
