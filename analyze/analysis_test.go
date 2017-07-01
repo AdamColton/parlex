@@ -25,15 +25,19 @@ func TestAnalyze(t *testing.T) {
 	assert.NotNil(t, g)
 
 	a := Analyze(g)
-	assert.Equal(t, 3, len(a.nonterm2firsts))
-	if !assert.Equal(t, 2, len(a.nonterm2firsts[A])) {
-		t.Error(a.nonterm2firsts[A])
+
+	AIdx := a.set.Symbol(A).Idx()
+	BIdx := a.set.Symbol(B).Idx()
+	CIdx := a.set.Symbol(C).Idx()
+
+	if !assert.Equal(t, 2, len(a.nonterm2firsts[AIdx])) {
+		t.Error(a.nonterm2firsts[AIdx])
 	}
-	if !assert.Equal(t, 1, len(a.nonterm2firsts[B])) {
-		t.Error(a.nonterm2firsts[B])
+	if !assert.Equal(t, 1, len(a.nonterm2firsts[BIdx])) {
+		t.Error(a.nonterm2firsts[BIdx])
 	}
-	if !assert.Equal(t, 1, len(a.nonterm2firsts[C])) {
-		t.Error(a.nonterm2firsts[C])
+	if !assert.Equal(t, 1, len(a.nonterm2firsts[CIdx])) {
+		t.Error(a.nonterm2firsts[CIdx])
 	}
 
 	assert.True(t, a.HasFirst(A, x))
@@ -57,15 +61,14 @@ func TestAnalyze(t *testing.T) {
 	assert.NotNil(t, g)
 
 	a = Analyze(g)
-	assert.Equal(t, 3, len(a.nonterm2firsts))
-	if !assert.Equal(t, 3, len(a.nonterm2firsts[A])) {
-		t.Error(a.nonterm2firsts[A])
+	if !assert.Equal(t, 3, len(a.nonterm2firsts[AIdx])) {
+		t.Error(a.nonterm2firsts[AIdx])
 	}
-	if !assert.Equal(t, 1, len(a.nonterm2firsts[B])) {
-		t.Error(a.nonterm2firsts[B])
+	if !assert.Equal(t, 1, len(a.nonterm2firsts[BIdx])) {
+		t.Error(a.nonterm2firsts[BIdx])
 	}
-	if !assert.Equal(t, 1, len(a.nonterm2firsts[C])) {
-		t.Error(a.nonterm2firsts[C])
+	if !assert.Equal(t, 1, len(a.nonterm2firsts[CIdx])) {
+		t.Error(a.nonterm2firsts[CIdx])
 	}
 
 	assert.True(t, a.HasFirst(A, x))

@@ -78,6 +78,20 @@ func (s *Set) Has(str string) bool {
 	return has
 }
 
+func (s *Set) HasSymbol(symbol parlex.Symbol) *Symbol {
+	if cast, ok := symbol.(*Symbol); ok && cast.set == s {
+		return cast
+	}
+	idx, has := s.str2sym[symbol.String()]
+	if !has {
+		return nil
+	}
+	return &Symbol{
+		val: idx,
+		set: s,
+	}
+}
+
 type Production struct {
 	symbs []int
 	set   *Set
@@ -226,5 +240,22 @@ func (p *Productions) Production(i int) parlex.Production {
 func (p *Productions) AddProductions(productions ...parlex.Production) {
 	for _, prod := range productions {
 		p.prods = append(p.prods, p.set.CastProduction(prod).symbs)
+	}
+}
+
+func (s *Set) LoadGrammar(grammar parlex.Grammar) {
+	for _, nt := range grammar.NonTerminals() {
+		s.Symbol(nt)
+		for i := grammar.Productions(nt).Iter(); i.Next(); {
+			for j := i.Iter(); j.Next(); {
+				s.Symbol(j.Symbol)
+			}
+		}
+	}
+}
+
+func (s *Set) LoadLexemes(lexemes []parlex.Lexeme) {
+	for _, lx := range lexemes {
+		s.Symbol(lx.Kind())
 	}
 }
