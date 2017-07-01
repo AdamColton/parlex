@@ -3,7 +3,7 @@ package packrat
 import (
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
-	"github.com/adamcolton/parlex/symbol/stringsymbol"
+	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"github.com/adamcolton/parlex/tree"
 )
 
@@ -13,8 +13,8 @@ type Packrat struct {
 }
 
 type treeMarker struct {
-	symbol stringsymbol.Symbol
-	start  int
+	idx   int
+	start int
 }
 
 type treeKey struct {
@@ -44,12 +44,14 @@ type updater struct {
 // pack-rat parse operation
 type prOp struct {
 	grmr     parlex.Grammar
-	lxms     []parlex.Lexeme
+	lxms     []*lexeme.Lexeme
 	memo     map[treeKey]treeDef
 	markers  map[treeMarker][]treeDef
 	partials map[treeMarker][]treePartial
 	queued   map[treeMarker]bool
+	nonterms []bool
 	stack    *updater
+	set      *setsymbol.Set
 }
 
 // New returns a Packrat parser
@@ -73,17 +75,24 @@ func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	if len(nts) == 0 {
 		return nil
 	}
+	set := setsymbol.New()
+	set.LoadGrammar(p.Grammar)
 	op := &prOp{
 		grmr:     p.Grammar,
-		lxms:     lexemes,
+		lxms:     set.LoadLexemes(lexemes),
 		memo:     make(map[treeKey]treeDef),
 		markers:  make(map[treeMarker][]treeDef),     // maps marker to treeDef containing that marker
 		partials: make(map[treeMarker][]treePartial), // maps a marker to a treePartial looking for that marker
 		queued:   make(map[treeMarker]bool),
+		set:      set,
+	}
+	op.nonterms = make([]bool, set.Size())
+	for _, nonterm := range p.Grammar.NonTerminals() {
+		op.nonterms[op.set.Symbol(nonterm).Idx()] = true
 	}
 
 	start := treeMarker{
-		symbol: stringsymbol.Symbol(nts[0].String()),
+		idx: op.set.Symbol(nts[0]).Idx(),
 	}
 	op.addProds(start)
 
@@ -94,10 +103,10 @@ func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	}
 
 	var accept treeKey
-	accept.symbol = stringsymbol.Symbol(nts[0].String())
+	accept.idx = start.idx
 	accept.end = len(lexemes)
 	accepted := op.memo[accept]
-	return accepted.toPN(lexemes, op.memo)
+	return accepted.toPN(op.lxms, op.memo, op.set)
 }
 
 func (op *prOp) addProds(root treeMarker) {
@@ -105,30 +114,29 @@ func (op *prOp) addProds(root treeMarker) {
 		return
 	}
 	op.queued[root] = true
-	prods := op.grmr.Productions(root.symbol)
+	rootSymbol := op.set.ByIdx(root.idx)
+	prods := op.grmr.Productions(rootSymbol)
 	if prods == nil {
 		return
 	}
-	ln := prods.Productions()
-	for pri := 0; pri < ln; pri++ {
-		prod := prods.Production(pri)
-		if prod.Symbols() == 0 {
+	for i := prods.Iter(); i.Next(); {
+		if i.Symbols() == 0 {
 			var nilTreeDef treeDef
 			nilTreeDef.treeMarker = root
 			nilTreeDef.end = root.start
-			nilTreeDef.priority = pri
+			nilTreeDef.priority = i.Idx
 			op.addToMemo(nilTreeDef)
 			continue
 		}
 
 		prodStart := treeMarker{
-			symbol: stringsymbol.Symbol(prod.Symbol(0).String()),
-			start:  root.start,
+			idx:   op.set.Symbol(i.Symbol(0)).Idx(),
+			start: root.start,
 		}
 		var prodPartial treePartial
 		prodPartial.treeMarker = root
-		prodPartial.prod = prod
-		prodPartial.priority = pri
+		prodPartial.prod = i.Production
+		prodPartial.priority = i.Idx
 
 		op.addPartial(prodPartial, prodStart)
 	}
@@ -148,11 +156,11 @@ func (u *updater) update(op *prOp) {
 	}
 
 	requires := treeMarker{
-		symbol: stringsymbol.Symbol(extended.prod.Symbol(ln + 1).String()),
-		start:  extended.end,
+		idx:   op.set.Symbol(extended.prod.Symbol(ln + 1)).Idx(),
+		start: extended.end,
 	}
 
-	if extended.end < len(op.lxms) && requires.symbol.String() == op.lxms[extended.end].Kind().String() {
+	if extended.end < len(op.lxms) && requires.idx == op.lxms[extended.end].K.(*setsymbol.Symbol).Idx() {
 		var td treeDef
 		td.treeMarker = requires
 		td.end = requires.start + 1
@@ -216,14 +224,10 @@ func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
 	return 0
 }
 
-func (op *prOp) nonterm(symbol parlex.Symbol) bool {
-	return op.grmr.Productions(symbol) != nil
-}
-
 func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
-	if op.nonterm(requires.symbol) {
+	if op.nonterms[requires.idx] {
 		op.partials[requires] = append(op.partials[requires], tp)
-	} else if requires.start < len(op.lxms) && requires.symbol.String() == op.lxms[requires.start].Kind().String() {
+	} else if requires.start < len(op.lxms) && requires.idx == op.lxms[requires.start].K.(*setsymbol.Symbol).Idx() {
 		var td treeDef
 		td.treeMarker = requires
 		td.end = requires.start + 1
@@ -245,12 +249,12 @@ func (op *prOp) push(tp treePartial, tk treeKey) {
 	}
 }
 
-func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN {
-	var lx parlex.Lexeme
-	if td.start < len(lxms) && lxms[td.start].Kind().String() == td.symbol.String() {
+func (td *treeDef) toPN(lxms []*lexeme.Lexeme, memo map[treeKey]treeDef, set *setsymbol.Set) *tree.PN {
+	var lx *lexeme.Lexeme
+	if td.start < len(lxms) && lxms[td.start].K.(*setsymbol.Symbol).Idx() == td.idx {
 		lx = lxms[td.start]
 	} else {
-		lx = lexeme.New(td.symbol)
+		lx = lexeme.New(set.ByIdx(td.idx))
 	}
 	pn := &tree.PN{
 		Lexeme: lx,
@@ -258,7 +262,7 @@ func (td *treeDef) toPN(lxms []parlex.Lexeme, memo map[treeKey]treeDef) *tree.PN
 	}
 	for i, c := range td.children {
 		ct := memo[c]
-		cpn := ct.toPN(lxms, memo)
+		cpn := ct.toPN(lxms, memo, set)
 		cpn.P = pn
 		pn.C[i] = cpn
 	}
