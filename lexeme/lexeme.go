@@ -6,6 +6,10 @@ import (
 	"github.com/adamcolton/parlex"
 )
 
+type symbol string
+
+func (s symbol) String() string { return string(s) }
+
 // Lexeme is a concrete implementation of parlex.Lexeme
 type Lexeme struct {
 	K    parlex.Symbol
@@ -18,6 +22,13 @@ type Lexeme struct {
 func New(kind parlex.Symbol) *Lexeme {
 	return &Lexeme{
 		K: kind,
+		L: -1,
+	}
+}
+
+func String(str string) *Lexeme {
+	return &Lexeme{
+		K: symbol(str),
 		L: -1,
 	}
 }
