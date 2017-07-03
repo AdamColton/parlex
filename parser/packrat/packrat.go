@@ -106,6 +106,15 @@ func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	accept.idx = start.idx
 	accept.end = len(lexemes)
 	accepted := op.memo[accept]
+	if accepted.end != accept.end {
+		var best treeDef
+		for _, td := range op.markers[accept.treeMarker] {
+			if td.end > best.end {
+				best = td
+			}
+		}
+		return nil
+	}
 	return accepted.toPN(op.lxms, op.memo, op.set)
 }
 
@@ -160,11 +169,7 @@ func (u *updater) update(op *prOp) {
 		start: extended.end,
 	}
 
-	if extended.end < len(op.lxms) && requires.idx == op.lxms[extended.end].K.(*setsymbol.Symbol).Idx() {
-		var td treeDef
-		td.treeMarker = requires
-		td.end = requires.start + 1
-		op.addToMemo(td)
+	if td := op.checkNonTerminal(extended.treeMarker); td != nil {
 		(&updater{
 			base:      extended,
 			extension: td.treeKey,
@@ -227,11 +232,8 @@ func (td *treeDef) comparePriority(td2 *treeDef, op *prOp) int8 {
 func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
 	if op.nonterms[requires.idx] {
 		op.partials[requires] = append(op.partials[requires], tp)
-	} else if requires.start < len(op.lxms) && requires.idx == op.lxms[requires.start].K.(*setsymbol.Symbol).Idx() {
-		var td treeDef
-		td.treeMarker = requires
-		td.end = requires.start + 1
-		op.addToMemo(td)
+	} else {
+		op.checkNonTerminal(requires)
 	}
 
 	for _, td := range op.markers[requires] {
@@ -239,6 +241,18 @@ func (op *prOp) addPartial(tp treePartial, requires treeMarker) {
 	}
 
 	op.addProds(requires)
+}
+
+func (op *prOp) checkNonTerminal(at treeMarker) *treeDef {
+	matchesNonterminal := at.start < len(op.lxms) && at.idx == op.lxms[at.start].K.(*setsymbol.Symbol).Idx()
+	if !matchesNonterminal {
+		return nil
+	}
+	var td treeDef
+	td.treeMarker = at
+	td.end = at.start + 1
+	op.addToMemo(td)
+	return &td
 }
 
 func (op *prOp) push(tp treePartial, tk treeKey) {
