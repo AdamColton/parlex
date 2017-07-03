@@ -1,7 +1,7 @@
 ## Parlex
 [![GoDoc](https://godoc.org/github.com/AdamColton/parlex?status.svg)](https://godoc.org/github.com/AdamColton/parlex)
 
-For a quick demo check out [json.go](https://github.com/AdamColton/parlex/blob/master/examples/json)
+For a quick demo check out [json.go](https://github.com/AdamColton/parlex/blob/master/examples/parlex_json)
 
 The core parlex package defines a common language around parsing. It provides
 interfaces for Lexer, Lexeme, Parser, Grammar, ParseNode and Reducer. It also

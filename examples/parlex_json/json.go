@@ -41,6 +41,7 @@ const grammarRules = `
   KeyVal        -> Key : Value
   Key           -> string
   Array         -> [ ArrayContents ]
+  Array         -> [ ]
   ArrayContents -> Value , ArrayContents
                 -> Value
 `

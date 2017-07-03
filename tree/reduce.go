@@ -168,6 +168,12 @@ func (p *PN) PromoteGrandChildren() {
 	p.C = newChildren
 }
 
+func PromoteGrandChildren() func(*PN) {
+	return func(node *PN) {
+		node.PromoteGrandChildren()
+	}
+}
+
 // PromoteChildrenOf will remove the child at cIdx and splice in all it's
 // children. If cIdx is negative, it will find the child relative to the end. If
 // cIdx is out of bounds, no action will be taken.
@@ -179,9 +185,15 @@ func (p *PN) PromoteChildrenOf(cIdx int) bool {
 	if cIdx == l-1 {
 		p.C = append(p.C[:cIdx], p.C[cIdx].C...)
 	} else {
-		p.C = append(p.C[:cIdx], append(p.C[cIdx].C, p.C[:cIdx+1]...)...)
+		p.C = append(p.C[:cIdx], append(p.C[cIdx].C, p.C[cIdx+1:]...)...)
 	}
 	return true
+}
+
+func PromoteChildrenOf(cIdx int) func(node *PN) {
+	return func(node *PN) {
+		node.PromoteChildrenOf(cIdx)
+	}
 }
 
 // PromoteChildValue returns a Reduction that will replace the value of the node
@@ -205,4 +217,12 @@ func (p *PN) PromoteChildValue(cIdx int) {
 		p.Lexeme = lexeme.New(p.Kind()).Set(p.C[cIdx].Value())
 	}
 	p.RemoveChild(cIdx)
+}
+
+func (p *PN) ChildIs(cIdx int, kind string) bool {
+	cIdx, _, ok := p.GetIdx(cIdx)
+	if !ok {
+		return false
+	}
+	return p.Child(cIdx).Kind().String() == kind
 }

@@ -29,9 +29,16 @@ func (l *StackLexer) Lex(str string) []parlex.Lexeme {
 		lines:    1,
 	}
 	op.err.kind = l.set.Str(op.Error)
+	if op.insert.startKind != "" {
+		op.lxs = append(op.lxs, lexeme.String(op.insert.startKind).Set(op.insert.startVal))
+	}
 	op.populateNext()
 
 	op.lex()
+
+	if op.insert.endKind != "" {
+		op.lxs = append(op.lxs, lexeme.String(op.insert.endKind).Set(op.insert.endVal))
+	}
 
 	return op.lxs
 }
@@ -40,13 +47,12 @@ func (op *lexOp) lex() {
 	for {
 		lx, lxEnd, r := op.findNextMatch()
 		if lxEnd == op.cur {
-			if !op.err.flag {
-				op.err.flag = true
-				op.err.start = op.cur
+			if len(op.stack) == 0 {
+				break
 			}
-			op.cur++
+			op.pop()
+			continue
 		} else {
-			op.checkError()
 			if !r.discard {
 				op.lxs = append(op.lxs, lx)
 			}
@@ -56,14 +62,7 @@ func (op *lexOp) lex() {
 			break
 		}
 		if r != nil && r.pop {
-			ln := len(op.stack)
-			if ln == 0 {
-				break
-			}
-			ln--
-			op.subLexer = op.stack[ln]
-			op.stack = op.stack[:ln]
-			op.populateNext()
+			op.pop()
 		} else if r != nil && r.push != "" {
 			op.stack = append(op.stack, op.subLexer)
 			op.subLexer = op.lexers[r.push]
@@ -72,8 +71,14 @@ func (op *lexOp) lex() {
 			op.updateNext()
 		}
 	}
-	op.checkError()
 	op.consumeRemainingAsError()
+}
+
+func (op *lexOp) pop() {
+	ln := len(op.stack) - 1
+	op.subLexer = op.stack[ln]
+	op.stack = op.stack[:ln]
+	op.populateNext()
 }
 
 func (op *lexOp) populateNext() {

@@ -2,6 +2,7 @@ package tree
 
 import (
 	"errors"
+	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
 	"github.com/adamcolton/parlex/symbol/stringsymbol"
@@ -86,7 +87,7 @@ func (p *PN) string(pad string, s []string) []string {
 	}
 	s = append(s, pad, p.Lexeme.Kind().String()) // B.2/3
 	if v := p.Lexeme.Value(); v != "" {
-		s = append(s, ": '", p.Lexeme.Value(), "'") // C.3
+		s = append(s, fmt.Sprintf(": %q", p.Lexeme.Value())) // C.3
 	}
 	if len(p.C) > 0 {
 		s = append(s, " {\n") // B.1/3
@@ -110,7 +111,7 @@ func (p *PN) sliceReq() int {
 	}
 	r := 3 // B
 	if p.Lexeme.Value() != "" {
-		r += 3 // C
+		r += 1 // C
 	}
 	if len(p.C) > 0 {
 		r += 2 // D

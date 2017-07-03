@@ -15,6 +15,12 @@ type StackLexer struct {
 	set     *setsymbol.Set
 	Error   string
 	compare func(e1, p1, e2, p2 int) bool
+	insert  struct {
+		startKind string
+		startVal  string
+		endKind   string
+		endVal    string
+	}
 }
 
 type subLexer struct {
@@ -90,6 +96,15 @@ func New(definitions ...string) (*StackLexer, error) {
 	return l, nil
 }
 
+func (l *StackLexer) InsertStart(kind, val string) *StackLexer {
+	l.insert.startKind, l.insert.startVal = kind, val
+	return l
+}
+func (l *StackLexer) InsertEnd(kind, val string) *StackLexer {
+	l.insert.endKind, l.insert.endVal = kind, val
+	return l
+}
+
 func (sl *subLexer) parse(defs map[string]string, done, stack map[string]bool) error {
 	if stack[sl.name] {
 		return ErrCyclic
@@ -138,17 +153,17 @@ func (sl *subLexer) addMatch(m []string) error {
 		pop:     m[3] == "^",
 		discard: m[4] == "-",
 	}
-
-	return sl.addRule(r)
+	sl.addRule(r)
+	return nil
 }
 
-func (sl *subLexer) addRule(r rule) error {
+func (sl *subLexer) addRule(r rule) {
 	ln := len(sl.rules)
 	if r.kind >= ln {
 		sl.rules = append(sl.rules, make([]*rule, 1+r.kind-ln)...)
 	}
 	if sl.rules[r.kind] != nil {
-		return ErrDuplicateKind
+		return
 	}
 	r.priority = sl.priorityCounter
 	sl.priorityCounter++
@@ -157,7 +172,6 @@ func (sl *subLexer) addRule(r rule) error {
 	for _, heir := range sl.inheirit.by {
 		heir.addRule(r)
 	}
-	return nil
 }
 
 func (sl *subLexer) addHeir(heir *subLexer, defs map[string]string, done, stack map[string]bool) error {
@@ -187,15 +201,21 @@ func (e *errLexeme) Error() string {
 
 // ByLength sets the lexer to choose the longest match and use priority to
 // decide a tie. This is the default.
-func (l *StackLexer) ByLength() { l.compare = lengthThenPriority }
+func (l *StackLexer) ByLength() *StackLexer {
+	l.compare = lengthThenPriority
+	return l
+}
 
 // ByPriority sets the lexer to choose the highest priority match and use the
 // length to decide a tie.
-func (l *StackLexer) ByPriority() { l.compare = priorityThenLength }
+func (l *StackLexer) ByPriority() *StackLexer {
+	l.compare = priorityThenLength
+	return l
+}
 
 func priorityThenLength(e1, p1, e2, p2 int) bool {
-	return p1 < p2 || (p1 == p2 && e1 > e2)
+	return p2 == -1 || p1 < p2 || (p1 == p2 && e1 > e2)
 }
 func lengthThenPriority(e1, p1, e2, p2 int) bool {
-	return e1 > e2 || (e1 == e2 && p1 < p2)
+	return e1 > e2 || (e1 == e2 && (p2 == -1 || p1 < p2))
 }
