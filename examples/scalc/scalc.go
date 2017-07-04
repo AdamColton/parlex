@@ -61,26 +61,29 @@ var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 var grmr = parlex.MustGrammar(grammar.New(grammarRules))
 var prsr = packrat.New(grmr)
 
-type pfloat struct {
-	v float64
-	p int
+func Parse(str string) parlex.ParseNode {
+	return rdcr.Reduce(prsr.Parse(lxr.Lex(str)))
 }
 
-func (p pfloat) String() string {
-	f := fmt.Sprintf("%%.%df", p.p)
-	return fmt.Sprintf(f, p.v)
-}
-
-func eval(node *tree.PN) []string {
-	stack := evalStack(node)
-	out := make([]string, len(stack))
-	for i, s := range stack {
-		out[i] = s.String()
+func Eval(str string) []Pfloat {
+	t := Parse(str)
+	if t == nil {
+		return nil
 	}
-	return out
+	return evalStack(t.(*tree.PN))
 }
 
-func evalStack(node *tree.PN) []pfloat {
+type Pfloat struct {
+	V float64
+	P int
+}
+
+func (p Pfloat) String() string {
+	f := fmt.Sprintf("%%.%df", p.P)
+	return fmt.Sprintf(f, p.V)
+}
+
+func evalStack(node *tree.PN) []Pfloat {
 	kind := node.Kind().String()
 
 	if kind == "smp" {
@@ -90,13 +93,13 @@ func evalStack(node *tree.PN) []pfloat {
 
 	switch kind {
 	case "Stack":
-		out := make([]pfloat, len(node.C))
+		out := make([]Pfloat, len(node.C))
 		for i, ch := range node.C {
 			out[i] = evalE(ch)
 		}
 		return out
 	default:
-		return []pfloat{evalE(node)}
+		return []Pfloat{evalE(node)}
 	}
 	return nil
 }
@@ -117,16 +120,16 @@ func evalSmp(op *tree.PN) {
 	}
 }
 
-func evalE(node *tree.PN) pfloat {
+func evalE(node *tree.PN) Pfloat {
 	switch node.Kind().String() {
 	case "Number":
 		if c := node.Children(); c == 2 {
 			c1 := node.C[1].Value()
 			f, _ := strconv.ParseFloat(node.C[0].Value()+c1, 64)
-			return pfloat{f, len(c1) - 1}
+			return Pfloat{f, len(c1) - 1}
 		} else if c == 1 {
 			f, _ := strconv.ParseFloat(node.C[0].Value(), 64)
-			return pfloat{f, 0}
+			return Pfloat{f, 0}
 		}
 	case "uop":
 		return evalUop(node.C[0], node)
@@ -135,59 +138,59 @@ func evalE(node *tree.PN) pfloat {
 	case "sop":
 		return evalSop(evalStack(node.C[0]), node)
 	}
-	return pfloat{}
+	return Pfloat{}
 }
 
-func evalUop(a, op *tree.PN) pfloat {
+func evalUop(a, op *tree.PN) Pfloat {
 	ae := evalE(a)
 	switch op.Value() {
 	case "--":
-		ae.v = -ae.v
+		ae.V = -ae.V
 	}
 	return ae
 }
 
-func evalBop(a, b, op *tree.PN) pfloat {
+func evalBop(a, b, op *tree.PN) Pfloat {
 	ae := evalE(a)
 	be := evalE(b)
 	p := maxPrecision(ae, be)
 	var v float64
 	switch op.Value() {
 	case "+":
-		v = ae.v + be.v
+		v = ae.V + be.V
 	case "*":
-		v = ae.v * be.v
+		v = ae.V * be.V
 	case "/":
-		v = ae.v / be.v
+		v = ae.V / be.V
 	case "-":
-		v = ae.v - be.v
+		v = ae.V - be.V
 	case "^":
-		v = math.Pow(ae.v, be.v)
+		v = math.Pow(ae.V, be.V)
 	case "%":
-		v = math.Mod(ae.v, be.v)
+		v = math.Mod(ae.V, be.V)
 	}
 
-	return pfloat{v, p}
+	return Pfloat{v, p}
 }
 
-func evalSop(stack []pfloat, op *tree.PN) pfloat {
-	var v pfloat
+func evalSop(stack []Pfloat, op *tree.PN) Pfloat {
+	var v Pfloat
 	switch op := op.Value(); op {
 	case "sum", "avg":
-		v.p = maxPrecision(stack...)
+		v.P = maxPrecision(stack...)
 		for _, p := range stack {
-			v.v += p.v
+			v.V += p.V
 		}
 		if op == "avg" && len(stack) > 0 {
-			v.v /= float64(len(stack))
+			v.V /= float64(len(stack))
 		}
 	case "len":
-		v.v = float64(len(stack))
+		v.V = float64(len(stack))
 	case "min":
 		if len(stack) > 0 {
 			v = stack[0]
 			for _, p := range stack[1:] {
-				if p.v < v.v {
+				if p.V < v.V {
 					v = p
 				}
 			}
@@ -196,7 +199,7 @@ func evalSop(stack []pfloat, op *tree.PN) pfloat {
 		if len(stack) > 0 {
 			v = stack[0]
 			for _, p := range stack[1:] {
-				if p.v > v.v {
+				if p.V > v.V {
 					v = p
 				}
 			}
@@ -214,11 +217,11 @@ func evalSop(stack []pfloat, op *tree.PN) pfloat {
 	return v
 }
 
-func maxPrecision(pfs ...pfloat) int {
+func maxPrecision(pfs ...Pfloat) int {
 	m := 0
 	for _, p := range pfs {
-		if p.p > m {
-			m = p.p
+		if p.P > m {
+			m = p.P
 		}
 	}
 	return m

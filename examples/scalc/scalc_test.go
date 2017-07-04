@@ -34,6 +34,15 @@ func makeCase(expr string, expect ...string) testCase {
 	}
 }
 
+func eval(node *tree.PN) []string {
+	stack := evalStack(node)
+	out := make([]string, len(stack))
+	for i, s := range stack {
+		out[i] = s.String()
+	}
+	return out
+}
+
 func TestCases(t *testing.T) {
 	tests := []testCase{
 		makeCase("2", "2"),
@@ -71,12 +80,16 @@ func TestCases(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		pn := prsr.Parse(lxr.Lex(tt.expr))
-		pn = rdcr.Reduce(pn)
+		pn := Parse(tt.expr)
 		if !assert.Equal(t, tt.expect, eval(pn.(*tree.PN)), tt.expr) {
 			t.Error(pn)
 		}
 	}
+}
+
+func TestParseFailsAsNil(t *testing.T) {
+	pn := Parse("you can't parse me!")
+	assert.True(t, pn == nil)
 }
 
 func TestPad(t *testing.T) {

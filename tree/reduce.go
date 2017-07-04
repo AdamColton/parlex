@@ -77,6 +77,12 @@ func (p *PN) PromoteChild(cIdx int) bool {
 	return true
 }
 
+func PromoteChild(cIdx int) func(*PN) {
+	return func(node *PN) {
+		node.PromoteChild(cIdx)
+	}
+}
+
 // ReplaceWithChild replaces the node with the child at cIdx.
 func (p *PN) ReplaceWithChild(cIdx int) bool {
 	cIdx, _, ok := p.GetIdx(cIdx)
