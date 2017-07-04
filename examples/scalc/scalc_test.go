@@ -44,6 +44,7 @@ func eval(node *tree.PN) []string {
 }
 
 func TestCases(t *testing.T) {
+	//t.Skip()
 	tests := []testCase{
 		makeCase("2", "2"),
 		makeCase("2.1", "2.1"),
@@ -56,6 +57,8 @@ func TestCases(t *testing.T) {
 		makeCase("(1) (2)", "1", "2"),
 		makeCase("(1) 3 (2)", "1", "3", "2"),
 		makeCase("2 --", "-2"),
+		makeCase("-2 abs", "2"),
+		makeCase("2 -- abs", "2"),
 		makeCase("2 3 +", "5"),
 		makeCase("2 3 -", "-1"),
 		makeCase("2 3 *", "6"),
@@ -77,11 +80,40 @@ func TestCases(t *testing.T) {
 		makeCase("1 2.000 *", "2.000"),
 		makeCase("1 3.0 /", "0.3"),
 		makeCase("1 2 / 1 2 / +", "1"),
+		makeCase("1 2 >", "0"),
+		makeCase("2 1 >", "1"),
+		makeCase("1 2 <", "1"),
+		makeCase("2 1 <", "0"),
+		makeCase("2 1 =", "0"),
+		makeCase("2 2 =", "1"),
+		makeCase("2 2 cmpr", "0"),
+		makeCase("1 2 cmpr", "-1"),
+		makeCase("2 1 cmpr", "1"),
+		makeCase("2 1 0 ?", "2"),
+		makeCase("2 1 3 ?", "1"),
+		makeCase("2 3 + * 3 ?", "6"),
+		makeCase("2 3 + * 0 ?", "5"),
+		makeCase("3 abs -- 1 ?", "-3"),
+		makeCase("2 3 - + 1 ? * 0 ?", "5"),
+		makeCase("2 3 - + 0 ? * 0 ?", "-1"),
+		makeCase("2 3 - + 1 ? * 1 ?", "6"),
+		makeCase("2 3 - + 0 ? * 1 ?", "6"),
+		makeCase("2 3 swap drop 1 ?", "2"),
+		makeCase("2 3 swap drop 0 ?", "3", "2"),
+		makeCase("-5--+6+*1+2++3=?", "30"),
 	}
 
-	for _, tt := range tests {
+	var tt testCase
+	for _, tt = range tests {
 		pn := Parse(tt.expr)
-		if !assert.Equal(t, tt.expect, eval(pn.(*tree.PN)), tt.expr) {
+		if pn == nil {
+			t.Error("Could not parse", tt.expr)
+			continue
+		}
+		tpn := pn.(*tree.PN)
+		str := tpn.String()
+		if !assert.Equal(t, tt.expect, eval(tpn), tt.expr) {
+			t.Error(str)
 			t.Error(pn)
 		}
 	}
@@ -94,8 +126,8 @@ func TestParseFailsAsNil(t *testing.T) {
 
 func TestPad(t *testing.T) {
 	t.Skip()
-	pn := prsr.Parse(lxr.Lex("1 drop"))
-	t.Error(pn)
+	pn := prsr.Parse(lxr.Lex("2 3 swap drop 1 ?"))
+	//t.Error(pn)
 	pn = rdcr.Reduce(pn)
 	t.Error(pn)
 	t.Error(eval(pn.(*tree.PN)))

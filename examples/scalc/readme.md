@@ -6,10 +6,22 @@ Numbers can begin with + or -. They must have an integer part and may have a
 decimal part. The out put will be limited to the longest decimal part.
 
 ### Unary Operators
-The only Unary operator is --, it performs negation
+The Unary operators are -- and abs. -- performs negation and abs takes the
+absolute value.
 
 ### Binary operators
-As expected +, -, *, / as well as ^ for exponent, and % for modulus.
+As expected +, -, *, / as well as ^ for exponent, and % for modulus. There are
+also a set of binary operations for comparison >,< and = will return 1 for true
+and 0 for false. The cmpr operator will return 1 if a>b, 0 if a==b and -1 if
+a&lt;b.
+
+### Ternary Operator
+? acts as the ternary operator. It is always of the form
+  T T E ?
+The first two can be anything as long as the types match; unary operators,
+binary operators, stack operators, stack manipuation operators or expressions.
+E must be an expression. If E evalutes to >0, the second T (top of the stack)
+will be returned, other wise the first T will be returned.
 
 ### Stack Operators
 Stack operators consume an entire stack and return a value. A sub stack can be

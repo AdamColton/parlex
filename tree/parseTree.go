@@ -66,11 +66,12 @@ func (p *PN) Children() int {
 
 // Child returns a child by index. This is part of the parlex.ParseNode
 // interface.
-func (p *PN) Child(i int) parlex.ParseNode {
-	if i >= len(p.C) {
+func (p *PN) Child(cIdx int) parlex.ParseNode {
+	cIdx, _, ok := p.GetIdx(cIdx)
+	if !ok {
 		return nil
 	}
-	return p.C[i]
+	return p.C[cIdx]
 }
 
 // String converts the entire tree (starting a *PN) to a string. This string can

@@ -15,32 +15,46 @@ const lexerRules = `
   space /\s+/ -
   int   /(\+|-)?\d+/
   dec   /\.\d+/
-  uop   /(--)/
-  bop   /[\*\/+\-\^%]/
+  uop   /(--)|(abs)/
+  bop   /(cmpr)|[\*\/+\-\^%><=]/
   sop   /(len)|(sum)|(avg)|(min)|(max)|(first)|(last)/
   smp   /(swap)|(drop)|(clear)/
+  ?     /\?/
   (     /\(/
   )     /\)/
 `
 
 const grammarRules = `
-  Stack  -> Stack smp
+  Stack  -> Stack Smp
          -> E Stack
          -> Stack P Stack
          ->
-  E      -> Stack sop
-         -> E uop
-         -> E E bop
+  E      -> Stack Sop
+         -> E E E ?
+         -> E Uop
+         -> E E Bop
          -> Number
   Number -> int
          -> int dec
   P      -> ( Stack )
+  Bop    -> bop
+         -> Bop Bop E ?
+  Uop    -> uop
+         -> Uop Uop E ?
+  Sop    -> sop
+         -> Sop Sop E ?
+  Smp    -> Smp Smp E ?
+         -> smp
 `
 
 var rdcr = tree.Reducer{
 	"Stack": stack,
 	"E":     tree.PromoteChild(-1),
 	"P":     tree.ReplaceWithChild(1),
+	"Bop":   tree.PromoteChild(-1),
+	"Uop":   tree.PromoteChild(-1),
+	"Sop":   tree.PromoteChild(-1),
+	"Smp":   tree.PromoteChild(-1),
 }
 
 func stack(node *tree.PN) {
@@ -50,7 +64,7 @@ func stack(node *tree.PN) {
 	if node.ChildAt(0, "Stack") {
 		node.PromoteChildrenOf(0)
 	}
-	if node.ChildAt(-1, "smp") {
+	if node.ChildAt(-1, "smp", "?") {
 		node.PromoteChild(-1)
 	} else {
 		node.PromoteSingleChild()
@@ -86,12 +100,21 @@ func (p Pfloat) String() string {
 func evalStack(node *tree.PN) []Pfloat {
 	kind := node.Kind().String()
 
-	if kind == "smp" {
-		evalSmp(node)
-		kind = "Stack"
-	}
-
 	switch kind {
+	case "?":
+		v := evalE(node.Child(-1).(*tree.PN)).V
+		node.RemoveChild(-1)
+		if v > 0 {
+			node.RemoveChild(-2)
+			node.PromoteChild(-1)
+		} else {
+			node.RemoveChild(-1)
+			node.PromoteChild(-1)
+		}
+		return evalStack(node)
+	case "smp":
+		evalSmp(node)
+		fallthrough
 	case "Stack":
 		out := make([]Pfloat, len(node.C))
 		for i, ch := range node.C {
@@ -146,6 +169,10 @@ func evalUop(a, op *tree.PN) Pfloat {
 	switch op.Value() {
 	case "--":
 		ae.V = -ae.V
+	case "abs":
+		if ae.V < 0 {
+			ae.V = -ae.V
+		}
 	}
 	return ae
 }
@@ -168,6 +195,24 @@ func evalBop(a, b, op *tree.PN) Pfloat {
 		v = math.Pow(ae.V, be.V)
 	case "%":
 		v = math.Mod(ae.V, be.V)
+	case ">":
+		if ae.V > be.V {
+			v = 1
+		}
+	case "<":
+		if ae.V < be.V {
+			v = 1
+		}
+	case "=":
+		if ae.V == be.V {
+			v = 1
+		}
+	case "cmpr":
+		if ae.V > be.V {
+			v = 1
+		} else if ae.V < be.V {
+			v = -1
+		}
 	}
 
 	return Pfloat{v, p}
