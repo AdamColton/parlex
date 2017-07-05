@@ -6,6 +6,7 @@ import (
 	"github.com/adamcolton/parlex/lexeme"
 	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -36,12 +37,37 @@ type subLexer struct {
 }
 
 type rule struct {
-	kind     int
-	re       *regexp.Regexp
-	discard  bool
-	priority int
-	push     string
-	pop      bool
+	kind       int
+	re         *regexp.Regexp
+	discard    bool
+	priority   int
+	push       string
+	pop        bool
+	submatches []submatch
+}
+
+type submatch struct {
+	section int
+	str     string
+}
+
+var intRe = regexp.MustCompile(`\d+`)
+
+func parseSubmatches(str string) []submatch {
+	if str == "" {
+		return nil
+	}
+	segs := strings.Split(str, "|")
+	ms := make([]submatch, len(segs))
+	for i, s := range segs {
+		if intRe.MatchString(s) {
+			sec, _ := strconv.Atoi(s)
+			ms[i] = submatch{section: sec}
+		} else {
+			ms[i] = submatch{section: -1, str: s}
+		}
+	}
+	return ms
 }
 
 var ErrDuplicateLexer = errors.New("Duplicate Lexer")
@@ -49,7 +75,7 @@ var ErrDuplicateKind = errors.New("Duplicate Kind")
 var ErrCyclic = errors.New("Cyclic Inheritance")
 
 var subParserDef = regexp.MustCompile(`==\s*([a-zA-Z_][a-zA-Z_0-9]*)\s*(?:==)?\s*\n`)
-var subParserLine = regexp.MustCompile(`([^\/\s]+)\s*(?:\/((?:[^\/\\]|(?:\\\/?))+)\/)?\s*(\^|(?:[a-zA-Z_][a-zA-Z_0-9]*))?\s*(-?)`)
+var subParserLine = regexp.MustCompile(`([^\/\s]+)\s*(?:\/((?:[^\/\\]|(?:\\\/?))+)\/\s*(?:\(((?:[^\\\)]|(?:\\[^\n]))*)\))?)?\s*(\^|(?:[a-zA-Z_][a-zA-Z_0-9]*))?\s*(-?)`)
 
 func New(definitions ...string) (*StackLexer, error) {
 	l := &StackLexer{
@@ -120,7 +146,8 @@ func (sl *subLexer) parse(defs map[string]string, done, stack map[string]bool) e
 			break
 		}
 		m := subParserLine.FindStringSubmatch(line)
-		if len(m) != 5 {
+		if len(m) != 6 {
+			//TODO: if line is not empty, give warning or error
 			continue
 		}
 
@@ -147,11 +174,12 @@ func (sl *subLexer) addMatch(m []string) error {
 	}
 
 	r := rule{
-		kind:    sl.set.Str(m[1]).Idx(),
-		re:      re,
-		push:    m[3],
-		pop:     m[3] == "^",
-		discard: m[4] == "-",
+		kind:       sl.set.Str(m[1]).Idx(),
+		re:         re,
+		push:       m[4],
+		pop:        m[4] == "^",
+		discard:    m[5] == "-",
+		submatches: parseSubmatches(m[3]),
 	}
 	sl.addRule(r)
 	return nil

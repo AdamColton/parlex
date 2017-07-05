@@ -21,8 +21,6 @@ const lexerRules = `
   ) /\)/
 `
 
-var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
-
 const grammarRules = `
   E -> E op2 E
     -> E op1 E
@@ -32,6 +30,7 @@ const grammarRules = `
   P -> ( E )
 `
 
+var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 var grmr = parlex.MustGrammar(grammar.New(grammarRules))
 var prsr = packrat.New(grmr)
 

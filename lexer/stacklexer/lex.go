@@ -12,7 +12,7 @@ type lexOp struct {
 	stack []*subLexer
 	b     []byte
 	lxs   []parlex.Lexeme
-	next  [][]int // next match [kind.Idx] => [0]:start, [1]: end
+	next  [][]int // next match [kind.Idx]
 	err   struct {
 		flag  bool
 		start int
@@ -85,10 +85,9 @@ func (op *lexOp) populateNext() {
 	op.next = make([][]int, op.set.Size())
 	for kind, r := range op.rules {
 		if r != nil {
-			loc := op.rules[kind].re.FindIndex(op.b[op.cur:])
+			loc := op.rules[kind].re.FindSubmatchIndex(op.b[op.cur:])
 			if loc != nil {
-				loc[0] += op.cur
-				loc[1] += op.cur
+				loc = append(loc, op.cur)
 			}
 			op.next[kind] = loc
 		}
@@ -97,34 +96,48 @@ func (op *lexOp) populateNext() {
 
 func (op *lexOp) findNextMatch() (*lexeme.Lexeme, int, *rule) {
 	var r *rule
-	lx := &lexeme.Lexeme{}
-	lxEnd := op.cur
-	lxP := -1
+	var idx []int
 
 	// look in next for matches and take the longest one
 	for kind, loc := range op.next {
-		if loc != nil && loc[0] == op.cur {
+		if loc != nil && loc[0]+loc[len(loc)-1] == op.cur {
 			tr := op.rules[kind]
-			if tr != nil && op.compare(loc[1], tr.priority, lxEnd, lxP) {
-				lx.K = op.set.ByIdx(kind)
-				lx.V = string(op.b[loc[0]:loc[1]])
-				lxEnd = loc[1]
-				lxP = tr.priority
+			if tr != nil && (r == nil || op.compare(loc[1], tr.priority, idx[1], r.priority)) {
+				idx = loc
 				r = tr
 			}
 		}
 	}
+	if r == nil {
+		return nil, op.cur, nil
+	}
 
-	op.handleLineCol(lx)
+	lx := &lexeme.Lexeme{
+		K: op.set.ByIdx(r.kind),
+	}
+	offset := idx[len(idx)-1]
+	if r.submatches != nil {
+		for _, sub := range r.submatches {
+			if sub.section == -1 {
+				lx.V += sub.str
+			} else {
+				lx.V += string(op.b[offset+idx[sub.section*2] : offset+idx[sub.section*2+1]])
+			}
+		}
+		op.handleLineCol(lx, string(op.b[offset+idx[0]:offset+idx[1]]))
+	} else {
+		lx.V = string(op.b[offset+idx[0] : offset+idx[1]])
+		op.handleLineCol(lx, lx.V)
+	}
 
-	return lx, lxEnd, r
+	return lx, offset + idx[1], r
 }
 
-func (op *lexOp) handleLineCol(lx *lexeme.Lexeme) {
+func (op *lexOp) handleLineCol(lx *lexeme.Lexeme, str string) {
 	lx.L = op.lines
 	lx.C = strings.LastIndex(string(op.b[:op.cur]), "\n")
 	lx.C = op.cur - lx.C
-	op.lines += strings.Count(lx.V, "\n")
+	op.lines += strings.Count(str, "\n")
 }
 
 func (op *lexOp) checkError() {
@@ -134,17 +147,16 @@ func (op *lexOp) checkError() {
 	op.err.flag = false
 	val := string(op.b[op.err.start:op.cur])
 	lx := lexeme.New(op.err.kind).Set(val)
-	op.handleLineCol(lx)
+	op.handleLineCol(lx, lx.V)
 	op.lxs = append(op.lxs, errLexeme{lx})
 }
 
 func (op *lexOp) updateNext() {
 	for kind, loc := range op.next {
-		if loc != nil && loc[0] <= op.cur {
-			loc := op.rules[kind].re.FindIndex(op.b[op.cur:])
+		if loc != nil && loc[0]+loc[len(loc)-1] <= op.cur {
+			loc := op.rules[kind].re.FindSubmatchIndex(op.b[op.cur:])
 			if loc != nil {
-				loc[0] += op.cur
-				loc[1] += op.cur
+				loc = append(loc, op.cur)
 			}
 			op.next[kind] = loc
 		}
