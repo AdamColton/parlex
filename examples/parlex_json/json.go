@@ -40,16 +40,11 @@ const grammarRules = `
 var grmr, grmrRdcr = regexgram.Must(grammarRules)
 var prsr = parlex.MustParser(topdown.New(grmr))
 
-func keyval(node *tree.PN) {
-	node.PromoteChildValue(0)
-	node.RemoveChild(0) // remove :
-}
-
 var rdcr = tree.Merge(grmrRdcr, tree.Reducer{
 	"Value":       tree.PromoteSingleChild,
 	"Object":      tree.RemoveChildren(0, -1), // remove { }
 	"Array":       tree.RemoveChildren(0, -1), // remove [ ]
-	"KeyVal":      keyval,
+	"KeyVal":      tree.PromoteChildValue(0).RemoveChild(0),
 	"MoreVals":    tree.ReplaceWithChild(1),
 	"MoreKeyVals": tree.ReplaceWithChild(1),
 })

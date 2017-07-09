@@ -107,12 +107,6 @@ func (p *PN) PromoteChild(cIdx int) bool {
 	return true
 }
 
-func PromoteChild(cIdx int) func(*PN) {
-	return func(node *PN) {
-		node.PromoteChild(cIdx)
-	}
-}
-
 // ReplaceWithChild replaces the node with the child at cIdx.
 func (p *PN) ReplaceWithChild(cIdx int) bool {
 	cIdx, _, ok := p.GetIdx(cIdx)
@@ -121,12 +115,6 @@ func (p *PN) ReplaceWithChild(cIdx int) bool {
 	}
 	*p = *(p.C[cIdx])
 	return true
-}
-
-// ReplaceWithChild replaces the node with the child at position cIdx, using
-// GetIdx
-func ReplaceWithChild(cIdx int) Reduction {
-	return func(node *PN) { node.ReplaceWithChild(cIdx) }
 }
 
 // GetIdx takes a child index and performs a conversion and check on it. If the
@@ -139,16 +127,6 @@ func (p *PN) GetIdx(cIdx int) (int, int, bool) {
 		cIdx = l + cIdx
 	}
 	return cIdx, l, cIdx >= 0 && cIdx < l
-}
-
-// RemoveChild produces a Reduction for removing a child at cIdx.
-func RemoveChild(cIdx int) Reduction {
-	return func(node *PN) { node.RemoveChild(cIdx) }
-}
-
-// RemoveChild produces a Reduction for removing a child at cIdx.
-func RemoveChildren(cIdxs ...int) Reduction {
-	return func(node *PN) { node.RemoveChildren(cIdxs...) }
 }
 
 // RemoveChildren calls RemoveChild repeatedly for each index given. Note that
@@ -174,12 +152,6 @@ func (p *PN) RemoveChild(cIdx int) bool {
 		p.C = append(p.C[0:cIdx], p.C[cIdx+1:]...)
 	}
 	return true
-}
-
-// PromoteSingleChild fulfills Reduce. If the node has a single child, that
-// child will be promoted to replace the node.
-func PromoteSingleChild(node *PN) {
-	node.PromoteSingleChild()
 }
 
 // PromoteSingleChild ; if the node has a single child, that child will be
@@ -209,12 +181,6 @@ func (p *PN) PromoteGrandChildren() {
 	p.C = newChildren
 }
 
-func PromoteGrandChildren() func(*PN) {
-	return func(node *PN) {
-		node.PromoteGrandChildren()
-	}
-}
-
 // PromoteChildrenOf will remove the child at cIdx and splice in all it's
 // children. If cIdx is negative, it will find the child relative to the end. If
 // cIdx is out of bounds, no action will be taken.
@@ -229,20 +195,6 @@ func (p *PN) PromoteChildrenOf(cIdx int) bool {
 		p.C = append(p.C[:cIdx], append(p.C[cIdx].C, p.C[cIdx+1:]...)...)
 	}
 	return true
-}
-
-func PromoteChildrenOf(cIdx int) func(node *PN) {
-	return func(node *PN) {
-		node.PromoteChildrenOf(cIdx)
-	}
-}
-
-// PromoteChildValue returns a Reduction that will replace the value of the node
-// with the value from the child at cIdx and remove the child at cIdx. If cIdx
-// is negative, it will find the child relative to the end. If cIdx is out of
-// bounds, no action will be taken.
-func PromoteChildValue(cIdx int) Reduction {
-	return func(node *PN) { node.PromoteChildValue(cIdx) }
 }
 
 // PromoteChildValue returns a Reduction that will replace the value of the node
@@ -266,4 +218,101 @@ func (p *PN) ChildIs(cIdx int, kind string) bool {
 		return false
 	}
 	return p.Child(cIdx).Kind().String() == kind
+}
+
+func PromoteChildrenOf(cIdx int) Reduction {
+	return func(node *PN) {
+		node.PromoteChildrenOf(cIdx)
+	}
+}
+
+// PromoteChildValue returns a Reduction that will replace the value of the node
+// with the value from the child at cIdx and remove the child at cIdx. If cIdx
+// is negative, it will find the child relative to the end. If cIdx is out of
+// bounds, no action will be taken.
+func PromoteChildValue(cIdx int) Reduction {
+	return func(node *PN) { node.PromoteChildValue(cIdx) }
+}
+
+func PromoteGrandChildren() func(*PN) {
+	return func(node *PN) {
+		node.PromoteGrandChildren()
+	}
+}
+
+// RemoveChild produces a Reduction for removing a child at cIdx.
+func RemoveChild(cIdx int) Reduction {
+	return func(node *PN) { node.RemoveChild(cIdx) }
+}
+
+// RemoveChildren produces a Reduction for removing a child at cIdx.
+func RemoveChildren(cIdxs ...int) Reduction {
+	return func(node *PN) { node.RemoveChildren(cIdxs...) }
+}
+
+// PromoteSingleChild fulfills Reduce. If the node has a single child, that
+// child will be promoted to replace the node.
+func PromoteSingleChild(node *PN) {
+	node.PromoteSingleChild()
+}
+
+// ReplaceWithChild replaces the node with the child at position cIdx, using
+// GetIdx
+func ReplaceWithChild(cIdx int) Reduction {
+	return func(node *PN) { node.ReplaceWithChild(cIdx) }
+}
+
+func PromoteChild(cIdx int) func(*PN) {
+	return func(node *PN) {
+		node.PromoteChild(cIdx)
+	}
+}
+
+func chain(r1, r2 Reduction) Reduction {
+	return func(node *PN) {
+		r1(node)
+		r2(node)
+	}
+}
+
+func (r Reduction) PromoteChildrenOf(cIdx int) Reduction {
+	return chain(r, PromoteChildrenOf(cIdx))
+}
+
+// PromoteChildValue returns a Reduction that will replace the value of the node
+// with the value from the child at cIdx and remove the child at cIdx. If cIdx
+// is negative, it will find the child relative to the end. If cIdx is out of
+// bounds, no action will be taken.
+func (r Reduction) PromoteChildValue(cIdx int) Reduction {
+	return chain(r, PromoteChildValue(cIdx))
+}
+
+func (r Reduction) PromoteGrandChildren() func(*PN) {
+	return chain(r, PromoteGrandChildren())
+}
+
+// RemoveChild produces a Reduction for removing a child at cIdx.
+func (r Reduction) RemoveChild(cIdx int) Reduction {
+	return chain(r, RemoveChild(cIdx))
+}
+
+// RemoveChildren produces a Reduction for removing a child at cIdx.
+func (r Reduction) RemoveChildren(cIdxs ...int) Reduction {
+	return chain(r, RemoveChildren(cIdxs...))
+}
+
+// PromoteSingleChild fulfills Reduce. If the node has a single child, that
+// child will be promoted to replace the node.
+func (r Reduction) PromoteSingleChild() Reduction {
+	return chain(r, PromoteSingleChild)
+}
+
+// ReplaceWithChild replaces the node with the child at position cIdx, using
+// GetIdx
+func (r Reduction) ReplaceWithChild(cIdx int) Reduction {
+	return chain(r, ReplaceWithChild(cIdx))
+}
+
+func (r Reduction) PromoteChild(cIdx int) func(*PN) {
+	return chain(r, PromoteChild(cIdx))
 }

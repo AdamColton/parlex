@@ -28,7 +28,7 @@ const lexerProductions = `
 `
 
 const grammarProductions = `
-  Grammar      -> NL Productions NL 
+  Grammar      -> NL Production Productions NL 
   Productions  -> Production Productions
                -> ContinueProd Productions
                -> 
@@ -62,32 +62,6 @@ const grammarProductions = `
                ->
 `
 
-func orSymbol(node *tree.PN) {
-	node.RemoveChild(1)
-	node.PromoteChildrenOf(1)
-}
-
-func moreOr(node *tree.PN) {
-	node.RemoveChild(1)
-	node.PromoteChildrenOf(1)
-}
-
-func group(node *tree.PN) {
-	node.RemoveChildren(0, -1)
-	node.PromoteChildrenOf(0)
-}
-
-func production(node *tree.PN) {
-	node.RemoveChildren(0, 1)
-	node.PromoteChildValue(0)
-	node.PromoteChildrenOf(0)
-}
-
-func continueProd(node *tree.PN) {
-	node.RemoveChildren(0, 0)
-	node.PromoteChildrenOf(0)
-}
-
 func grammerRdcr(node *tree.PN) {
 	if node.ChildIs(0, "NL") {
 		node.RemoveChild(0)
@@ -95,21 +69,21 @@ func grammerRdcr(node *tree.PN) {
 	if node.ChildIs(-1, "NL") {
 		node.RemoveChild(-1)
 	}
-	node.PromoteChildrenOf(0)
+	node.PromoteChildrenOf(1)
 }
 
 var rdcr = tree.Reducer{
 	"Grammar":      grammerRdcr,
 	"Productions":  tree.PromoteChildrenOf(1),
-	"Production":   production,
-	"ContinueProd": continueProd,
+	"Production":   tree.RemoveChildren(0, 1).PromoteChildValue(0).PromoteChildrenOf(0),
+	"ContinueProd": tree.RemoveChildren(0, 0).PromoteChildrenOf(0),
 	"Symbols":      tree.PromoteChildrenOf(-1),
 	"Symbol":       tree.PromoteSingleChild,
 	"OptSymbol":    tree.RemoveChild(-1),
 	"RepSymbol":    tree.RemoveChild(-1),
-	"OrSymbol":     orSymbol,
-	"MoreOr":       moreOr,
-	"Group":        group,
+	"OrSymbol":     tree.RemoveChild(1).PromoteChildrenOf(1),
+	"MoreOr":       tree.RemoveChild(1).PromoteChildrenOf(1),
+	"Group":        tree.RemoveChildren(0, -1).PromoteChildrenOf(0),
 }
 
 var lxr = parlex.MustLexer(simplelexer.New(lexerProductions)).(*simplelexer.Lexer).
@@ -120,10 +94,9 @@ var prsr = packrat.New(grmr)
 var runner = parlex.New(lxr, prsr, rdcr)
 
 type evalOp struct {
-	grammar *grammar.Grammar
-	set     *setsymbol.Set
-	rdcr    tree.Reducer
-	// nonterm *setsymbol.Symbol
+	grammar   *grammar.Grammar
+	set       *setsymbol.Set
+	rdcr      tree.Reducer
 	stack     []*tree.PN
 	nonterm   string
 	bludgeons map[string][]string
