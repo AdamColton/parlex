@@ -62,4 +62,5 @@ type Grammar interface {
 // clearing away symbols that are now represeneted by the tree structure.
 type Reducer interface {
 	Reduce(ParseNode) ParseNode
+	Can(ParseNode) bool
 }

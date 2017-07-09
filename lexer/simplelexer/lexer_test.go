@@ -49,17 +49,24 @@ func TestLex(t *testing.T) {
     word  /\w+/
     space /\s+/
   `)
+	lxr.
+		InsertStart("START_K", "START_V").
+		InsertEnd("END_K", "END_V")
 	assert.NoError(t, err)
 	lxs := lxr.Lex(s)
 
-	if assert.Equal(t, 7, len(lxs)) {
-		assert.Equal(t, "word", lxs[0].Kind().String())
-		assert.Equal(t, "this", lxs[0].Value())
-		assert.Equal(t, "space", lxs[1].Kind().String())
-		assert.Equal(t, " ", lxs[1].Value())
+	if assert.Equal(t, 9, len(lxs)) {
+		assert.Equal(t, "START_K", lxs[0].Kind().String())
+		assert.Equal(t, "START_V", lxs[0].Value())
+		assert.Equal(t, "word", lxs[1].Kind().String())
+		assert.Equal(t, "this", lxs[1].Value())
+		assert.Equal(t, "space", lxs[2].Kind().String())
+		assert.Equal(t, " ", lxs[2].Value())
 		// confirm that test takes priority over word
-		assert.Equal(t, "test", lxs[6].Kind().String())
-		assert.Equal(t, "test", lxs[6].Value())
+		assert.Equal(t, "test", lxs[7].Kind().String())
+		assert.Equal(t, "test", lxs[7].Value())
+		assert.Equal(t, "END_K", lxs[8].Kind().String())
+		assert.Equal(t, "END_V", lxs[8].Value())
 	}
 }
 

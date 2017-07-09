@@ -18,6 +18,35 @@ func (r Reducer) Add(symbol string, reduction Reduction) {
 	r[symbol] = reduction
 }
 
+func (r Reducer) Can(node parlex.ParseNode) bool {
+	_, has := r[node.Kind().String()]
+	return has
+}
+
+func Merge(r1, r2 Reducer) Reducer {
+	merged := Reducer{}
+	for symbol, r2fn := range r2 {
+		if r1fn, found := r1[symbol]; !found {
+			merged[symbol] = r2fn
+		} else {
+			merged[symbol] = merge(r1fn, r2fn)
+		}
+	}
+	for symbol, r1fn := range r1 {
+		if _, found := merged[symbol]; !found {
+			merged[symbol] = r1fn
+		}
+	}
+	return merged
+}
+
+func merge(fn1, fn2 Reduction) Reduction {
+	return func(node *PN) {
+		fn1(node)
+		fn2(node)
+	}
+}
+
 // Reduce performs a reduction on the tree. It makes a copy during the process
 // and the result comes back as parlex.ParseNode. For this reason, you don't
 // want to traverse up the tree during a reduction. Instead, use Reduce to
@@ -26,7 +55,8 @@ func (r Reducer) Add(symbol string, reduction Reduction) {
 // further up the tree.
 func (r Reducer) Reduce(node parlex.ParseNode) parlex.ParseNode {
 	if node == nil {
-		return node
+		// RawReduce returning nil is not the same thing
+		return nil
 	}
 	return r.RawReduce(node)
 }
@@ -114,6 +144,11 @@ func (p *PN) GetIdx(cIdx int) (int, int, bool) {
 // RemoveChild produces a Reduction for removing a child at cIdx.
 func RemoveChild(cIdx int) Reduction {
 	return func(node *PN) { node.RemoveChild(cIdx) }
+}
+
+// RemoveChild produces a Reduction for removing a child at cIdx.
+func RemoveChildren(cIdxs ...int) Reduction {
+	return func(node *PN) { node.RemoveChildren(cIdxs...) }
 }
 
 // RemoveChildren calls RemoveChild repeatedly for each index given. Note that

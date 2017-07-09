@@ -35,17 +35,17 @@ func TestGpParse(t *testing.T) {
 			expected, _ := tree.New(`
         E {
           T {
-            int: '1'
+            int: "1"
           }
-          op: '+'
+          op: "+"
           E {
             T {
-              int: '2'
+              int: "2"
             }
-            op: '+'
+            op: "+"
             E {
               T {
-                int: '3'
+                int: "3"
               }
             }
           }

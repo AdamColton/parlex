@@ -18,6 +18,12 @@ type Lexer struct {
 	priorityCounter int
 	Error           string
 	set             *setsymbol.Set
+	insert          struct {
+		startKind string
+		startVal  string
+		endKind   string
+		endVal    string
+	}
 }
 
 // ByLength sets the lexer to choose the longest match and use priority to
@@ -68,6 +74,10 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 		Lexer: l,
 		b:     []byte(str),
 	}
+
+	if op.insert.startKind != "" {
+		op.lxs = append(op.lxs, lexeme.String(op.insert.startKind).Set(op.insert.startVal))
+	}
 	op.populateNext()
 
 	for {
@@ -91,6 +101,10 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 		op.updateNext()
 	}
 	op.checkError()
+
+	if op.insert.endKind != "" {
+		op.lxs = append(op.lxs, lexeme.String(op.insert.endKind).Set(op.insert.endVal))
+	}
 
 	return op.lxs
 }

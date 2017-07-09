@@ -10,10 +10,12 @@ import (
 	"strings"
 )
 
-var reTreeLine = regexp.MustCompile(`\s*(\}?)\s*([^\}\{:\'\s]+|$)\s*(?:\:\s*\'((?:[^\'\\]|(?:\\.))*)\')?\s*(\{?)$`)
+var reTreeLine = regexp.MustCompile(`\s*(\}?)\s*([^\}\{:\"\s]+|$)\s*(?:\:\s*\"((?:[^\"\\]|(?:\\.))*)\")?\s*(\{?)$`)
 
 // ErrBadTreeString is thrown if a tree definition cannot be parsed.
 var ErrBadTreeString = errors.New("Bad Tree String")
+
+var handleSlash = strings.NewReplacer(`\\`, "\\", `\n`, "\n", `\"`, "\"")
 
 // New creates a *PN from a string. They are more commonly created from a Parser
 // but this can be useful for testing.
@@ -29,7 +31,7 @@ func New(str string) (*PN, error) {
 		}
 		if m[2] != "" {
 			kind := stringsymbol.Symbol(m[2])
-			val := m[3]
+			val := handleSlash.Replace(m[3])
 			ch := &PN{
 				Lexeme: lexeme.New(kind).Set(val),
 				P:      cur,
@@ -149,4 +151,20 @@ func (p *PN) ChildAt(cIdx int, symbs ...string) bool {
 		}
 	}
 	return false
+}
+
+func Clone(node parlex.ParseNode) *PN {
+	pn := &PN{
+		Lexeme: &lexeme.Lexeme{
+			K: node.Kind(),
+			V: node.Value(),
+		},
+		C: make([]*PN, node.Children()),
+	}
+	for i := 0; i < node.Children(); i++ {
+		c := Clone(node.Child(i))
+		c.P = pn
+		pn.C[i] = c
+	}
+	return pn
 }

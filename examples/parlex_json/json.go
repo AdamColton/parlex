@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/adamcolton/parlex"
-	"github.com/adamcolton/parlex/grammar"
+	"github.com/adamcolton/parlex/grammar/regexgram"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/topdown"
 	"github.com/adamcolton/parlex/tree"
@@ -18,77 +18,58 @@ const lexerRules = `
   string /(\"([^\"\\]|(\\.))*\")/
   bool   /(true)|(false)/
   null
-  ,
-  {
-  }
-  [      /\[/
-  ]
-  :
+  comma  /,/
+  lcb    /\{/
+  rcb    /\}/
+  lb     /\[/
+  rb     /\]/
+  colon  /:/
 `
 
 var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 
 const grammarRules = `
-  Value         -> string
-                -> number
-                -> bool
-                -> null
-                -> Array
-                -> Object
-  Object        -> { ObjectDef }
-  ObjectDef     -> KeyVal , ObjectDef
-                -> KeyVal
-  KeyVal        -> Key : Value
-  Key           -> string
-  Array         -> [ ArrayContents ]
-  Array         -> [ ]
-  ArrayContents -> Value , ArrayContents
-                -> Value
+  Value         -> string | number | bool | null | Array | Object
+  Array         -> lb ( Value MoreVals* )? rb
+  MoreVals      -> comma Value
+  Object        -> lcb ( KeyVal MoreKeyVals* )? rcb
+  MoreKeyVals   -> comma KeyVal
+  KeyVal        -> string colon Value
 `
 
-var grmr = parlex.MustGrammar(grammar.New(grammarRules))
+var grmr, grmrRdcr = regexgram.Must(grammarRules)
 var prsr = parlex.MustParser(topdown.New(grmr))
 
-func reduceList(node *tree.PN) {
-	node.RemoveChild(1)       // remove comma
-	node.PromoteChildrenOf(1) // promote recursive portion of list
+func keyval(node *tree.PN) {
+	node.PromoteChildValue(0)
+	node.RemoveChild(0) // remove :
 }
 
-func reduceListWrapper(node *tree.PN) {
-	node.RemoveChildren(0, -1)  // remove wrapper
-	node.PromoteGrandChildren() // promote rows in ObjectDef
-}
+var rdcr = tree.Merge(grmrRdcr, tree.Reducer{
+	"Value":       tree.PromoteSingleChild,
+	"Object":      tree.RemoveChildren(0, -1), // remove { }
+	"Array":       tree.RemoveChildren(0, -1), // remove [ ]
+	"KeyVal":      keyval,
+	"MoreVals":    tree.ReplaceWithChild(1),
+	"MoreKeyVals": tree.ReplaceWithChild(1),
+})
 
-var reducer = tree.Reducer{
-	"Value":         tree.PromoteSingleChild,
-	"ObjectDef":     reduceList,
-	"Object":        reduceListWrapper,
-	"KeyVal":        tree.RemoveChild(1), // remove :
-	"Key":           tree.PromoteChildValue(0),
-	"ArrayContents": reduceList,
-	"Array":         reduceListWrapper,
-}
-
-var runner = parlex.New(lxr, prsr, reducer)
-
-func check(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+var runner = parlex.New(lxr, prsr, rdcr)
 
 func main() {
 	s := strings.Join(os.Args[1:], " ")
 	var buf bytes.Buffer
-	tr := runner.Run(s)
+	tr, err := runner.Run(s)
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+		return
+	}
 	prettyPrint(tr, &buf, "")
 	fmt.Println(buf.String())
 }
 
 func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
 	switch node.Kind().String() {
-	case "string", "number", "bool", "null", "Key":
-		buf.WriteString(node.Value())
 	case "Array":
 		buf.WriteString("[")
 		cpad := pad + "  "
@@ -134,9 +115,11 @@ func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
 		buf.WriteString(pad)
 		buf.WriteString("}")
 	case "KeyVal":
-		prettyPrint(node.Child(0), buf, pad)
+		buf.WriteString(node.Value())
 		buf.WriteString(": ")
-		prettyPrint(node.Child(1), buf, pad)
+		prettyPrint(node.Child(0), buf, pad)
+	default:
+		buf.WriteString(node.Value())
 	}
 
 }

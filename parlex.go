@@ -1,13 +1,29 @@
 package parlex
 
 // Run performs the lexing, parsing and reducing for an input
-func Run(input string, lexer Lexer, parser Parser, reducer Reducer) ParseNode {
+func Run(input string, lexer Lexer, parser Parser, reducer Reducer) (ParseNode, error) {
 	lexemes := lexer.Lex(input)
-	tree := parser.Parse(lexemes)
-	if reducer != nil {
-		tree = reducer.Reduce(tree)
+	if lexemes == nil {
+		return nil, ErrCouldNotLex
 	}
-	return tree
+	errs := LexErrors(lexemes)
+	if errs != nil {
+		return nil, errs[0]
+	}
+
+	parseTree := parser.Parse(lexemes)
+	if parseTree == nil {
+		return nil, ErrCouldNotParse
+	}
+
+	if reducer != nil {
+		parseTree = reducer.Reduce(parseTree)
+		if parseTree == nil {
+			return nil, ErrCouldNotReduce
+		}
+	}
+
+	return parseTree, nil
 }
 
 // Runner holds a Lexer, Parser and Reducer and uses them to operate on an input
@@ -28,6 +44,6 @@ func New(lexer Lexer, parser Parser, reducer Reducer) *Runner {
 }
 
 // Run using the Parser, Lexer and Reducer in the Runner.
-func (r *Runner) Run(input string) ParseNode {
+func (r *Runner) Run(input string) (ParseNode, error) {
 	return Run(input, r.lexer, r.parser, r.reducer)
 }

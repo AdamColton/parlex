@@ -22,11 +22,11 @@ func TestParseNodeString(t *testing.T) {
 	pn1, err := New(`
 		E {
 			E {
-				int: '1'
+				int: "1"
 			}
-			op: '+'
+			op: "+"
 			E {
-				int: '2'
+				int: "2"
 			}
 	  }
   `)
@@ -35,6 +35,14 @@ func TestParseNodeString(t *testing.T) {
 
 	pn2, err := New(pn1.String())
 	assert.Equal(t, pn1.String(), pn2.String())
+
+	//test "
+	pn1.Lexeme.(*lexeme.Lexeme).V = "\"test\""
+	pn2, err = New(pn1.String())
+	if pn1.String() != pn2.String() {
+		t.Error(pn1.String(), pn2.String())
+	}
+
 }
 
 func TestReTreeLine(t *testing.T) {
@@ -44,7 +52,7 @@ func TestReTreeLine(t *testing.T) {
 		kind, value                 string
 		hasleftBrace, hasRightBrace bool
 	}{
-		{"} op : '+' {", true, "op", "+", true, true},
+		{"} op : \"+\" {", true, "op", "+", true, true},
 		{" } ", true, "", "", true, false},
 		{"{", false, "", "", false, false},
 	}

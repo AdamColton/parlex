@@ -41,6 +41,15 @@ func New(definitions ...string) (*Lexer, error) {
 	return l, nil
 }
 
+func (l *Lexer) InsertStart(kind, val string) *Lexer {
+	l.insert.startKind, l.insert.startVal = kind, val
+	return l
+}
+func (l *Lexer) InsertEnd(kind, val string) *Lexer {
+	l.insert.endKind, l.insert.endVal = kind, val
+	return l
+}
+
 var lexStr = regexp.MustCompile(`([^\/\s]+)\s*(?:\/((?:[^\/\\]|(?:\\\/?))+)\/)?\s*(-?)`)
 
 func (l *Lexer) ruleFromLine(line string) (*rule, error) {

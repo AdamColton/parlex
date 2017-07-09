@@ -46,7 +46,12 @@ var reducer = tree.Reducer{
 var runner = parlex.New(lxr, prsr, reducer)
 
 func main() {
-	fmt.Println(eval(runner.Run(strings.Join(os.Args[1:], " "))))
+	tr, err := runner.Run(strings.Join(os.Args[1:], " "))
+	if err != nil {
+		fmt.Fprint(os.Stderr, err)
+		return
+	}
+	fmt.Println(eval(tr))
 }
 
 func eval(node parlex.ParseNode) float64 {

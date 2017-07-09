@@ -1,9 +1,7 @@
 package scalc
 
 import (
-	//"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/tree"
-	//"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -74,6 +72,7 @@ func TestCases(t *testing.T) {
 		makeCase("1 2 3 first", "3"),
 		makeCase("1 2 3 last", "1"),
 		makeCase("1 2 swap", "2", "1"),
+		makeCase("1 2 + swap", "3"), // ??? is this correct
 		makeCase("1 2 drop", "1"),
 		makeCase("1 drop"),
 		makeCase("1 2 3 clear"),

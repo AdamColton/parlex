@@ -37,17 +37,17 @@ func TestGpParsePR(t *testing.T) {
 			expected, _ := tree.New(`
         E {
           T {
-            int: '1'
+            int: "1"
           }
-          op: '+'
+          op: "+"
           E {
             T {
-              int: '2'
+              int: "2"
             }
-            op: '+'
+            op: "+"
             E {
               T {
-                int: '3'
+                int: "3"
               }
             }
           }
@@ -88,25 +88,25 @@ func TestParensPR(t *testing.T) {
     E {
       T {
         P {
-          (: '('
+          (: "("
           E {
             T {
-              int: '1'
+              int: "1"
             }
-            op: '+'
+            op: "+"
             E {
               T {
-                int: '2'
+                int: "2"
               }
             }
           }
-          ): ')'
+          ): ")"
         }
       }
-      op: '*'
+      op: "*"
       E {
         T {
-          int: '3'
+          int: "3"
         }
       }
     }
@@ -143,26 +143,26 @@ func TestLeftRecursion(t *testing.T) {
     E {
       E {
         E {
-          int: '5'
+          int: "5"
         }
-        op: '*'
+        op: "*"
         E {
-          (: '('
+          (: "("
           E {
             E {
-              int: '1'
+              int: "1"
             }
-            op: '+'
+            op: "+"
             E {
-              int: '2'
+              int: "2"
             }
           }
-          ): ')'
+          ): ")"
         }
       }
-      op: '*'
+      op: "*"
       E {
-        int: '3'
+        int: "3"
       }
     }
   `)
@@ -207,16 +207,16 @@ func TestCyclicRecursion(t *testing.T) {
     A {
       B {
         A {
-          +: '+'
+          +: "+"
         }
         A {
           B {
-            -: '-'
+            -: "-"
           }
-          +: '+'
+          +: "+"
         }
       }
-      +: '+'
+      +: "+"
     }
   `)
 
@@ -280,51 +280,51 @@ func TestPRNil(t *testing.T) {
     E {
       E {
         Gap {
-          space: ' '
+          space: " "
         }
         E {
           P {
-            (: '('
+            (: "("
             E {
               E {
                 Gap {
-                  space: ' '
+                  space: " "
                 }
                 E {
-                  int: '1'
+                  int: "1"
                 }
                 Gap {
-                  space: ' '
+                  space: " "
                 }
               }
-              op: '+'
+              op: "+"
               E {
                 Gap {
-                  space: ' '
+                  space: " "
                 }
                 E {
-                  int: '2'
+                  int: "2"
                 }
                 Gap
               }
             }
-            ): ')'
+            ): ")"
           }
         }
         Gap {
-          space: '  '
+          space: "  "
         }
       }
-      op: '*'
+      op: "*"
       E {
         Gap {
-          space: '  '
+          space: "  "
         }
         E {
-          int: '3'
+          int: "3"
         }
         Gap {
-          space: ' '
+          space: " "
         }
       }
     }
