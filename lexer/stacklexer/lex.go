@@ -48,16 +48,21 @@ func (op *lexOp) lex() {
 		lx, lxEnd, r := op.findNextMatch()
 		if lxEnd == op.cur {
 			if len(op.stack) == 0 {
-				break
+				op.setError()
+				op.cur++
+				if op.cur >= len(op.b) {
+					break
+				}
+			} else {
+				op.pop()
 			}
-			op.pop()
 			continue
-		} else {
-			if !r.discard {
-				op.lxs = append(op.lxs, lx)
-			}
-			op.cur = lxEnd
 		}
+		op.checkError()
+		if !r.discard {
+			op.lxs = append(op.lxs, lx)
+		}
+		op.cur = lxEnd
 		if op.cur >= len(op.b) {
 			break
 		}
@@ -72,6 +77,7 @@ func (op *lexOp) lex() {
 		}
 	}
 	op.consumeRemainingAsError()
+	op.checkError()
 }
 
 func (op *lexOp) pop() {
@@ -148,7 +154,7 @@ func (op *lexOp) checkError() {
 	val := string(op.b[op.err.start:op.cur])
 	lx := lexeme.New(op.err.kind).Set(val)
 	op.handleLineCol(lx, lx.V)
-	op.lxs = append(op.lxs, errLexeme{lx})
+	op.lxs = append(op.lxs, &errLexeme{lx})
 }
 
 func (op *lexOp) updateNext() {
@@ -167,8 +173,14 @@ func (op *lexOp) consumeRemainingAsError() {
 	if op.cur == len(op.b) {
 		return
 	}
+	op.setError()
+	op.cur = len(op.b)
+}
+
+func (op *lexOp) setError() {
+	if op.err.flag {
+		return
+	}
 	op.err.flag = true
 	op.err.start = op.cur
-	op.cur = len(op.b)
-	op.checkError()
 }

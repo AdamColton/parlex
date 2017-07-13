@@ -1,6 +1,7 @@
 package stacklexer
 
 import (
+	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/lexeme"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -150,4 +151,26 @@ func TestStacklexerSubSection(t *testing.T) {
 			t.Error(i)
 		}
 	}
+}
+
+func TestLexerError(t *testing.T) {
+	lxr, err := New(`
+    == main ==
+      foo
+      bar barLexer
+      shared
+    == barLexer ==
+      glorp
+      shared
+    == shared ==
+      space /\s+/ -
+      nl /\n/ -
+  `)
+	assert.NoError(t, err)
+
+	lxms := lxr.Lex("foo bar error1 foo error2")
+	assert.Len(t, lxms, 5)
+
+	errs := parlex.LexErrors(lxms)
+	assert.Len(t, errs, 2)
 }
