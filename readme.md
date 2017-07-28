@@ -3,20 +3,8 @@
 
 For a quick demo check out [json.go](https://github.com/AdamColton/parlex/blob/master/examples/parlex_json)
 
-The core parlex package defines a common language around parsing. It provides
-interfaces for Lexer, Lexeme, Parser, Grammar, ParseNode and Reducer. It also
-provides concrete types for Symbol, Production and Productions.
+The core parlex package defines common interfaces around parsing. Sub-packages
+exist to fulfill all of the interfaces.
 
-Sub-packages exist to fulfill all of the interfaces.
-
-### Nil productions in Grammar
-Some grammars make use of Nil or Epsilon values, that is a non-terminal that can
-be skipped. The correct way to define this is:
-
-Given:
-```
-NonTerminal -> NIL
-NIL         ->
-```
-
-A NIL Production should be represented by a Production of length 0, not by nil.
+The core package also implements some helpers than use only the interface
+specification.
