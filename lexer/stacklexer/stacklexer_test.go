@@ -174,3 +174,32 @@ func TestLexerError(t *testing.T) {
 	errs := parlex.LexErrors(lxms)
 	assert.Len(t, errs, 2)
 }
+
+func TestDoublePop(t *testing.T) {
+	lxr, err := New(`
+    == Main ==
+      level1 Level1
+      bar
+      Shared
+    == Level1 ==
+      level2 Level2
+      badBar /bar/
+      Shared
+    == Level2 ==
+      exit ^^
+      badBar /bar/
+      Shared
+    == Shared ==
+      space /\s+/ -
+      nl /\n/ -
+  `)
+	assert.NoError(t, err)
+
+	lxms := lxr.Lex("bar level1 level2 exit bar")
+	if assert.Len(t, lxms, 5) {
+		assert.Equal(t, "level1", lxms[1].Kind().String())
+		assert.Equal(t, "level2", lxms[2].Kind().String())
+		assert.Equal(t, "exit", lxms[3].Kind().String())
+		assert.Equal(t, "bar", lxms[4].Kind().String())
+	}
+}

@@ -54,7 +54,7 @@ func (op *lexOp) lex() {
 					break
 				}
 			} else {
-				op.pop()
+				op.pop(1)
 			}
 			continue
 		}
@@ -66,8 +66,8 @@ func (op *lexOp) lex() {
 		if op.cur >= len(op.b) {
 			break
 		}
-		if r != nil && r.pop {
-			op.pop()
+		if r != nil && r.pop > 0 {
+			op.pop(r.pop)
 		} else if r != nil && r.push != "" {
 			op.stack = append(op.stack, op.subLexer)
 			op.subLexer = op.lexers[r.push]
@@ -80,8 +80,11 @@ func (op *lexOp) lex() {
 	op.checkError()
 }
 
-func (op *lexOp) pop() {
-	ln := len(op.stack) - 1
+func (op *lexOp) pop(i int) {
+	ln := len(op.stack) - i
+	if ln < 0 {
+		ln = 0
+	}
 	op.subLexer = op.stack[ln]
 	op.stack = op.stack[:ln]
 	op.populateNext()

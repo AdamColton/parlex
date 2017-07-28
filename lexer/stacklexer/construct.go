@@ -42,7 +42,7 @@ type rule struct {
 	discard    bool
 	priority   int
 	push       string
-	pop        bool
+	pop        int
 	submatches []submatch
 }
 
@@ -75,7 +75,7 @@ var ErrDuplicateKind = errors.New("Duplicate Kind")
 var ErrCyclic = errors.New("Cyclic Inheritance")
 
 var subParserDef = regexp.MustCompile(`==\s*([a-zA-Z_][a-zA-Z_0-9]*)\s*(?:==)?\s*\n`)
-var subParserLine = regexp.MustCompile(`([^\/\s]+)\s*(?:\/((?:[^\/\\]|(?:\\\/?))+)\/\s*(?:\(((?:[^\\\)]|(?:\\[^\n]))*)\))?)?\s*(\^|(?:[a-zA-Z_][a-zA-Z_0-9]*))?\s*(-?)`)
+var subParserLine = regexp.MustCompile(`([^\/\s]+)\s*(?:\/((?:[^\/\\]|(?:\\\/?))+)\/\s*(?:\(((?:[^\\\)]|(?:\\[^\n]))*)\))?)?\s*((?:\^+)|(?:[a-zA-Z_][a-zA-Z_0-9]*))?\s*(-?)`)
 
 func New(definitions ...string) (*StackLexer, error) {
 	l := &StackLexer{
@@ -173,11 +173,24 @@ func (sl *subLexer) addMatch(m []string) error {
 		return err
 	}
 
+	push := m[4]
+	pop := 0
+	for _, r := range push {
+		if r != '^' {
+			pop = 0
+			break
+		}
+		pop++
+	}
+	if pop > 0 {
+		push = ""
+	}
+
 	r := rule{
 		kind:       sl.set.Str(m[1]).Idx(),
 		re:         re,
-		push:       m[4],
-		pop:        m[4] == "^",
+		push:       push,
+		pop:        pop,
 		discard:    m[5] == "-",
 		submatches: parseSubmatches(m[3]),
 	}
