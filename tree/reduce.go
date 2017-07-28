@@ -117,6 +117,21 @@ func (p *PN) ReplaceWithChild(cIdx int) bool {
 	return true
 }
 
+func (p *PN) RemoveAll(symbols ...string) {
+	for i := 0; i < len(p.C); i++ {
+		if p.ChildAt(i, symbols...) {
+			p.RemoveChild(i)
+			i--
+		}
+	}
+}
+
+func RemoveAll(symbols ...string) Reduction {
+	return func(node *PN) {
+		node.RemoveAll(symbols...)
+	}
+}
+
 // GetIdx takes a child index and performs a conversion and check on it. If the
 // index is negative, it will convert it to a positive position relative to the
 // end (so -1 is the last child). The second int returned is the number of
@@ -275,6 +290,43 @@ func chain(r1, r2 Reduction) Reduction {
 	}
 }
 
+type Condition func(node *PN) bool
+
+func If(condition Condition, then, otherwise Reduction) Reduction {
+	return func(node *PN) {
+		if condition(node) {
+			if then != nil {
+				then(node)
+			}
+		} else {
+			if otherwise != nil {
+				otherwise(node)
+			}
+		}
+	}
+}
+
+func (r Reduction) If(condition Condition, then, otherwise Reduction) Reduction {
+	return func(node *PN) {
+		r(node)
+		if condition(node) {
+			if then != nil {
+				then(node)
+			}
+		} else {
+			if otherwise != nil {
+				otherwise(node)
+			}
+		}
+	}
+}
+
+func ChildIs(cIdx int, kind string) Condition {
+	return func(node *PN) bool {
+		return node.ChildIs(cIdx, kind)
+	}
+}
+
 func (r Reduction) PromoteChildrenOf(cIdx int) Reduction {
 	return chain(r, PromoteChildrenOf(cIdx))
 }
@@ -289,6 +341,10 @@ func (r Reduction) PromoteChildValue(cIdx int) Reduction {
 
 func (r Reduction) PromoteGrandChildren() func(*PN) {
 	return chain(r, PromoteGrandChildren())
+}
+
+func (r Reduction) RemoveAll(symbols ...string) Reduction {
+	return chain(r, RemoveAll(symbols...))
 }
 
 // RemoveChild produces a Reduction for removing a child at cIdx.
