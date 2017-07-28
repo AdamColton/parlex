@@ -62,28 +62,44 @@ const grammarProductions = `
                ->
 `
 
-func grammerRdcr(node *tree.PN) {
-	if node.ChildIs(0, "NL") {
-		node.RemoveChild(0)
-	}
-	if node.ChildIs(-1, "NL") {
-		node.RemoveChild(-1)
-	}
-	node.PromoteChildrenOf(1)
-}
-
 var rdcr = tree.Reducer{
-	"Grammar":      grammerRdcr,
-	"Productions":  tree.PromoteChildrenOf(1),
-	"Production":   tree.RemoveChildren(0, 1).PromoteChildValue(0).PromoteChildrenOf(0),
-	"ContinueProd": tree.RemoveChildren(0, 0).PromoteChildrenOf(0),
-	"Symbols":      tree.PromoteChildrenOf(-1),
-	"Symbol":       tree.PromoteSingleChild,
-	"OptSymbol":    tree.RemoveChild(-1),
-	"RepSymbol":    tree.RemoveChild(-1),
-	"OrSymbol":     tree.RemoveChild(1).PromoteChildrenOf(1),
-	"MoreOr":       tree.RemoveChild(1).PromoteChildrenOf(1),
-	"Group":        tree.RemoveChildren(0, -1).PromoteChildrenOf(0),
+	"Grammar": tree.
+		If(
+			tree.ChildIs(0, "NL"), // Remove newlines at start of document
+			tree.RemoveChild(0),
+			nil,
+		).
+		If(
+			tree.ChildIs(-1, "NL"), // Remove newlines at end of document
+			tree.RemoveChild(-1),
+			nil,
+		).
+		PromoteChildrenOf(1), // promote children of Productions
+	"Productions": tree.
+		PromoteChildrenOf(1), // promote children of Productions
+	"Production": tree.
+		RemoveChildren(0, 1). // remove new-line and rarr
+		PromoteChildValue(0). // promote the non-terminal to be the production value
+		PromoteChildrenOf(0), // replace Symbols with it's children
+	"ContinueProd": tree.
+		RemoveChildren(0, 0). // remove new-line and rarr
+		PromoteChildrenOf(0), // replace Symbols with it's children
+	"Symbols": tree.
+		PromoteChildrenOf(-1), // Children of last will be either more symbols or nil
+	"Symbol": tree.PromoteSingleChild,
+	"OptSymbol": tree.
+		RemoveChild(-1), // Remove ?
+	"RepSymbol": tree.
+		RemoveChild(-1), // Remove *
+	"OrSymbol": tree.
+		RemoveChild(1).       // Remove |
+		PromoteChildrenOf(1), // promote the rest of the or condition
+	"MoreOr": tree.
+		RemoveChild(1).       // Remove |
+		PromoteChildrenOf(1), // promote the rest of the or condition
+	"Group": tree.
+		RemoveChildren(0, -1). // Remove ( )
+		PromoteChildrenOf(0),  // Promote the children to replace Group
 }
 
 var lxr = parlex.MustLexer(simplelexer.New(lexerProductions)).(*simplelexer.Lexer).
