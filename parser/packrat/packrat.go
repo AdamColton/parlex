@@ -265,10 +265,12 @@ func (op *prOp) push(tp treePartial, tk treeKey) {
 
 func (td *treeDef) toPN(lxms []*lexeme.Lexeme, memo map[treeKey]treeDef, set *setsymbol.Set) *tree.PN {
 	var lx *lexeme.Lexeme
+	var setPos bool
 	if td.start < len(lxms) && lxms[td.start].K.(*setsymbol.Symbol).Idx() == td.idx {
 		lx = lxms[td.start]
 	} else {
 		lx = lexeme.New(set.ByIdx(td.idx))
+		setPos = true
 	}
 	pn := &tree.PN{
 		Lexeme: lx,
@@ -279,6 +281,9 @@ func (td *treeDef) toPN(lxms []*lexeme.Lexeme, memo map[treeKey]treeDef, set *se
 		cpn := ct.toPN(lxms, memo, set)
 		cpn.P = pn
 		pn.C[i] = cpn
+	}
+	if setPos && len(pn.C) > 0 {
+		lx.L, lx.C = pn.C[0].Pos()
 	}
 	return pn
 }
