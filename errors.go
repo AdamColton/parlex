@@ -4,6 +4,7 @@ type strErr string
 
 func (err strErr) Error() string { return string(err) }
 
+// Standard errors
 const (
 	ErrCouldNotLex    = strErr("Could Not Lex")
 	ErrCouldNotParse  = strErr("Could Not Parse")

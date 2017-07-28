@@ -66,6 +66,25 @@ func LexemeString(ls ...Lexeme) string {
 	return "[" + strings.Join(strs, ", ") + "]"
 }
 
+// LexemeList prints a slice of Lexemes, one per line. Useful when debugging a
+// lexer.
+func LexemeList(ls []Lexeme) string {
+	if len(ls) == 0 {
+		return ""
+	}
+	var strs = make([]string, len(ls))
+	for i, l := range ls {
+		k, v := l.Kind().String(), l.Value()
+		pl, pc := l.Pos()
+		if pl > 0 || pc > 0 {
+			strs[i] = fmt.Sprintf("%s: %q (%d, %d)", k, v, pl, pc)
+		} else {
+			strs[i] = fmt.Sprintf("%s: %q", k, v)
+		}
+	}
+	return strings.Join(strs, "\n")
+}
+
 // MustParser consumes the error from a parser constructor and panics if it is
 // not nil.
 func MustParser(p Parser, err error) Parser {
@@ -102,11 +121,15 @@ func HasNonTerminal(g Grammar, s Symbol) bool {
 	return g.Productions(s) != nil
 }
 
+// LexError allows a Lexer to try to continue lexing when it encounters an error
+// and return useful error values.
 type LexError interface {
 	Lexeme
 	Error() string
 }
 
+// LexErrors takes a slice of Lexemes and returns any that are instances of
+// LexError. This allows multiple errors to be caught.
 func LexErrors(lexemes []Lexeme) (errs []LexError) {
 	for _, lx := range lexemes {
 		if err, ok := lx.(LexError); ok {
@@ -116,10 +139,12 @@ func LexErrors(lexemes []Lexeme) (errs []LexError) {
 	return
 }
 
+// SymLen returns the rune length of a Symbol
 func SymLen(s Symbol) int {
 	return len([]rune(s.String()))
 }
 
+// ProductionIterator is used to iterate over a production.
 type ProductionIterator struct {
 	Symbol
 	Production Production
@@ -127,6 +152,8 @@ type ProductionIterator struct {
 	Idx        int
 }
 
+// Next moves Symbol to the next symbol in the production. It returns false if
+// there are no more symbols.
 func (p *ProductionIterator) Next() bool {
 	if p.ln == 0 {
 		if p.Production == nil {
@@ -146,6 +173,7 @@ func (p *ProductionIterator) Next() bool {
 	return p.Symbol != nil
 }
 
+// ProductionsIterator is used to iterate over a set of productions.
 type ProductionsIterator struct {
 	Production
 	Productions Productions
@@ -153,6 +181,8 @@ type ProductionsIterator struct {
 	Idx         int
 }
 
+// Next moves Production to the next production in the productions. It returns
+// false if there are no more productions.
 func (p *ProductionsIterator) Next() bool {
 	if p.ln == 0 {
 		if p.Productions == nil {
