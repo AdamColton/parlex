@@ -1,15 +1,12 @@
-package main
+package parlexjson
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar/regexgram"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/topdown"
 	"github.com/adamcolton/parlex/tree"
-	"os"
-	"strings"
 )
 
 const lexerRules = `
@@ -29,12 +26,12 @@ const lexerRules = `
 var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 
 const grammarRules = `
-  Value         -> string | number | bool | null | Array | Object
-  Array         -> lb ( Value MoreVals* )? rb
-  MoreVals      -> comma Value
-  Object        -> lcb ( KeyVal MoreKeyVals* )? rcb
-  MoreKeyVals   -> comma KeyVal
-  KeyVal        -> string colon Value
+  Value       -> string | number | bool | null | Array | Object
+  Array       -> lb ( Value MoreVals* )? rb
+  MoreVals    -> comma Value
+  Object      -> lcb ( KeyVal MoreKeyVals* )? rcb
+  MoreKeyVals -> comma KeyVal
+  KeyVal      -> string colon Value
 `
 
 var grmr, grmrRdcr = regexgram.Must(grammarRules)
@@ -42,25 +39,25 @@ var prsr = parlex.MustParser(topdown.New(grmr))
 
 var rdcr = tree.Merge(grmrRdcr, tree.Reducer{
 	"Value":       tree.PromoteSingleChild,
-	"Object":      tree.RemoveChildren(0, -1), // remove { }
-	"Array":       tree.RemoveChildren(0, -1), // remove [ ]
-	"KeyVal":      tree.PromoteChildValue(0).RemoveChild(0),
+	"Object":      tree.RemoveChildren(0, -1),               // remove { }
+	"Array":       tree.RemoveChildren(0, -1),               // remove [ ]
+	"KeyVal":      tree.PromoteChildValue(0).RemoveChild(0), // Promote key, remove :
 	"MoreVals":    tree.ReplaceWithChild(1),
 	"MoreKeyVals": tree.ReplaceWithChild(1),
 })
 
 var runner = parlex.New(lxr, prsr, rdcr)
 
-func main() {
-	s := strings.Join(os.Args[1:], " ")
+// Format takes a json string and formats it, returning it as a string. If there
+// is an error, that will be returned with an empty string.
+func Format(s string) (string, error) {
 	var buf bytes.Buffer
 	tr, err := runner.Run(s)
 	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-		return
+		return "", err
 	}
 	prettyPrint(tr, &buf, "")
-	fmt.Println(buf.String())
+	return buf.String(), nil
 }
 
 func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
@@ -116,5 +113,4 @@ func prettyPrint(node parlex.ParseNode, buf *bytes.Buffer, pad string) {
 	default:
 		buf.WriteString(node.Value())
 	}
-
 }

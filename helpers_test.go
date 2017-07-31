@@ -134,3 +134,26 @@ func TestIsRecursive(t *testing.T) {
 	g.add("a")
 	assert.True(t, IsLeftRecursive(g))
 }
+
+type lxErr struct {
+	*lx
+}
+
+func (l *lxErr) Error() string {
+	return "ERROR"
+}
+
+func TestLexErrors(t *testing.T) {
+	lxs := []Lexeme{
+		&lx{k: "int", v: "1"},
+		&lx{k: "op", v: "+"},
+		&lxErr{&lx{k: "int", v: "2"}},
+		&lx{k: "op", v: "*"},
+		&lx{k: "int", v: "3"},
+	}
+
+	errs := LexErrors(lxs)
+	if assert.Len(t, errs, 1) {
+		assert.Equal(t, "2", errs[0].Value())
+	}
+}

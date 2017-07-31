@@ -117,7 +117,7 @@ func (op *lexOp) checkError() {
 	val := string(op.b[op.errStart:op.cur])
 	errKind := op.set.Str(op.Error)
 	lxm := lexeme.New(errKind).Set(val)
-	op.lxs = append(op.lxs, errLexeme{lxm})
+	op.lxs = append(op.lxs, &errLexeme{lxm})
 }
 
 func (op *lexOp) populateNext() {

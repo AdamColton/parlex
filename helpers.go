@@ -128,6 +128,18 @@ type LexError interface {
 	Error() string
 }
 
+type lexErr struct {
+	Lexeme
+}
+
+func (l *lexErr) Error() string {
+	if pl, pc := l.Pos(); pl > 0 {
+		return fmt.Sprintf("%s %d:%d) %s", l.Kind().String(), pl, pc, l.Value())
+	}
+	return fmt.Sprintf("%s) %s", l.Kind().String(), l.Value())
+
+}
+
 // LexErrors takes a slice of Lexemes and returns any that are instances of
 // LexError. This allows multiple errors to be caught.
 func LexErrors(lexemes []Lexeme) (errs []LexError) {

@@ -7,7 +7,7 @@ func Run(input string, lexer Lexer, parser Parser, reducer Reducer) (ParseNode, 
 		return nil, ErrCouldNotLex
 	}
 	errs := LexErrors(lexemes)
-	if errs != nil {
+	if len(errs) > 0 {
 		return nil, errs[0]
 	}
 

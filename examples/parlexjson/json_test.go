@@ -1,7 +1,8 @@
-package main
+package parlexjson
 
 import (
 	"bytes"
+	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/tree"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -40,14 +41,9 @@ func TestJSON(t *testing.T) {
 	assert.Equal(t, tr1.(*tree.PN).String(), tr2.(*tree.PN).String())
 }
 
-func TestCase(t *testing.T) {
-	t.Skip()
-	s := `{"test": true}`
-	tr, err := runner.Run(s)
-	assert.NotNil(t, err)
-	var buf bytes.Buffer
-	prettyPrint(tr, &buf, "")
-	if s != buf.String() {
-		t.Error(buf.String())
-	}
+func TestParseFailure(t *testing.T) {
+	s := "test"
+	lxms := lxr.Lex(s)
+	errs := parlex.LexErrors(lxms)
+	assert.Len(t, errs, 1)
 }

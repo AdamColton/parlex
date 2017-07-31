@@ -1,6 +1,8 @@
 package simplelexer
 
 import (
+	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/lexeme"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -87,4 +89,10 @@ func TestLexDiscard(t *testing.T) {
 		assert.Equal(t, "test", lxs[3].Kind().String())
 		assert.Equal(t, "test", lxs[3].Value())
 	}
+}
+
+func TestError(t *testing.T) {
+	var err parlex.LexError
+	err = &errLexeme{lexeme.String("Error").At(10, 10)}
+	assert.Error(t, err)
 }
