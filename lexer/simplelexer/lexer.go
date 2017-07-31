@@ -10,7 +10,8 @@ import (
 )
 
 // Lexer implements parlex.Lexer. It can take a string and produce a slice of
-// lexemes.
+// lexemes. Changing Error will change what Kind it assigns to error Lexemes
+// if it fails to lex a given input.
 type Lexer struct {
 	order           []int
 	rules           []*rule
