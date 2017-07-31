@@ -294,6 +294,7 @@ func (rc ruleComb) reduce() rules {
 	return ra
 }
 
+// New takes a grammar string and returns a grammar, reducer and error.
 func New(grammarString string) (*grammar.Grammar, tree.Reducer, error) {
 	parseTree, err := runner.Run(grammarString)
 	if err != nil {
@@ -303,6 +304,8 @@ func New(grammarString string) (*grammar.Grammar, tree.Reducer, error) {
 	return g, r, nil
 }
 
+// Must returns a grammar and a reducer. If it fails to parse the grammar string
+// it will panic.
 func Must(grammarString string) (*grammar.Grammar, tree.Reducer) {
 	g, r, err := New(grammarString)
 	if err != nil {

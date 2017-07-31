@@ -68,8 +68,8 @@ func (op *lrOp) safeAdd(prod *setsymbol.Production) {
 	}
 }
 
-func (l *lrOp) getTail(prod *setsymbol.Production) *setsymbol.Production {
-	tail := l.set.Production()
+func (op *lrOp) getTail(prod *setsymbol.Production) *setsymbol.Production {
+	tail := op.set.Production()
 	ln := prod.Symbols()
 	for i := 1; i < ln; i++ {
 		tail.AddSymbols(prod.Symbol(i))
