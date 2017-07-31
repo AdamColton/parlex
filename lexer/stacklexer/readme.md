@@ -1,4 +1,6 @@
 ## Stack Lexer
+[![GoDoc](https://godoc.org/github.com/AdamColton/parlex/lexer/stacklexer?status.svg)](https://godoc.org/github.com/AdamColton/parlex/lexer/stacklexer)
+
 The Stack Lexer can take some of the load off the parser and help simplify the
 grammar. A stack lexer is comprised of several sub-lexers. Lexing rules can be
 tagged to either push the current lexer on the stack and switch to different
