@@ -2,6 +2,7 @@ package grammar
 
 import (
 	"errors"
+	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"strings"
@@ -167,5 +168,27 @@ func (g *Grammar) Add(from parlex.Symbol, to parlex.Production) {
 // String converts the grammar to a string. It aligns all the ->'s. The output
 // of Grammar.String() can be used to define a copy of the grammar.
 func (g *Grammar) String() string {
-	return parlex.FormatGrammar(g)
+	longest := -1
+	totalCount := 0
+	nonTerminals := g.NonTerminals()
+	for _, nt := range nonTerminals {
+		prods := g.Productions(nt)
+		if l := parlex.SymLen(nt); l > longest {
+			longest = l
+		}
+		totalCount += prods.Productions()
+	}
+
+	format := fmt.Sprintf("%%-%ds -> %%s", longest)
+	segs := make([]string, 0, totalCount)
+	for _, nt := range nonTerminals {
+		prods := g.Productions(nt)
+		iter := prods.Iter()
+		iter.Next()
+		segs = append(segs, fmt.Sprintf(format, nt, iter.Production))
+		for iter.Next() {
+			segs = append(segs, fmt.Sprintf(format, "", iter.Production))
+		}
+	}
+	return strings.Join(segs, "\n")
 }

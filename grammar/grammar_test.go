@@ -1,7 +1,6 @@
 package grammar
 
 import (
-	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/symbol/stringsymbol"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -24,7 +23,6 @@ func TestGrammarString(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, g1.String(), g2.String())
 
-	assert.Equal(t, g1.String(), parlex.GrammarString(g1))
 	assert.True(t, g1.Productions(A) != nil)
 	assert.True(t, g1.Productions(x) == nil)
 

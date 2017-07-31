@@ -10,42 +10,6 @@ type Stringer interface {
 	String() string
 }
 
-// GrammarString converts a Grammar to a string representation. If it implements
-// Stringer, that will be used, otherwise it will use FormatGrammar
-func GrammarString(g Grammar) string {
-	if s, ok := g.(Stringer); ok {
-		return s.String()
-	}
-	return FormatGrammar(g)
-}
-
-// FormatGrammar formats a grammar into a string
-func FormatGrammar(g Grammar) string {
-	longest := -1
-	totalCount := 0
-	nonTerminals := g.NonTerminals()
-	for _, nt := range nonTerminals {
-		prods := g.Productions(nt)
-		if l := SymLen(nt); l > longest {
-			longest = l
-		}
-		totalCount += prods.Productions()
-	}
-
-	format := fmt.Sprintf("%%-%ds -> %%s", longest)
-	segs := make([]string, 0, totalCount)
-	for _, nt := range nonTerminals {
-		prods := g.Productions(nt)
-		iter := prods.Iter()
-		iter.Next()
-		segs = append(segs, fmt.Sprintf(format, nt, iter.Production))
-		for iter.Next() {
-			segs = append(segs, fmt.Sprintf(format, "", iter.Production))
-		}
-	}
-	return strings.Join(segs, "\n")
-}
-
 // LexemeString returns a Lexeme in the form "Kind : Value"
 func LexemeString(ls ...Lexeme) string {
 	if len(ls) == 0 {
