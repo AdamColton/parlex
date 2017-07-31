@@ -13,9 +13,11 @@ import (
 // concatination.
 var ErrDuplicateKind = errors.New("Duplicate Kind")
 
+// DefaultErrorString is the value that will be assigned to any lex errors
 var DefaultErrorString = "Error"
 
-// New returns a new Lexer
+// New returns a new Lexer. It can be provided definitions, though most often it
+// is only given a single definition. Each line will be one rule.
 func New(definitions ...string) (*Lexer, error) {
 	l := &Lexer{
 		compare: lengthThenPriority,
@@ -41,10 +43,17 @@ func New(definitions ...string) (*Lexer, error) {
 	return l, nil
 }
 
+// InsertStart will insert a lexeme at the start of any results. This can be
+// helpful to add a special lexeme to indicate the beginning or add something
+// like a newline to make the format more consistent.
 func (l *Lexer) InsertStart(kind, val string) *Lexer {
 	l.insert.startKind, l.insert.startVal = kind, val
 	return l
 }
+
+// InsertEnd will insert a lexeme at the end of any results. This can be helpful
+// to add a special lexeme to indicate the end or add something like a newline
+// to make the format more consistent.
 func (l *Lexer) InsertEnd(kind, val string) *Lexer {
 	l.insert.endKind, l.insert.endVal = kind, val
 	return l

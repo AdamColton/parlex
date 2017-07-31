@@ -1,3 +1,5 @@
+// Package stacklexer provides a more advanced lexer. See readme for full
+// details.
 package stacklexer
 
 import (
@@ -10,6 +12,8 @@ import (
 	"strings"
 )
 
+// StackLexer is defined as a set of sublexer and will lex a string using a
+// stack of lexers to provide more power than a simple lexer.
 type StackLexer struct {
 	lexers  map[string]*subLexer
 	start   *subLexer
@@ -70,13 +74,15 @@ func parseSubmatches(str string) []submatch {
 	return ms
 }
 
-var ErrDuplicateLexer = errors.New("Duplicate Lexer")
-var ErrDuplicateKind = errors.New("Duplicate Kind")
+// ErrCyclic will be returned if a stack lexers form a cyclic inheritance
 var ErrCyclic = errors.New("Cyclic Inheritance")
 
 var subParserDef = regexp.MustCompile(`==\s*([a-zA-Z_][a-zA-Z_0-9]*)\s*(?:==)?\s*\n`)
 var subParserLine = regexp.MustCompile(`([^\/\s]+)\s*(?:\/((?:[^\/\\]|(?:\\\/?))+)\/\s*(?:\(((?:[^\\\)]|(?:\\[^\n]))*)\))?)?\s*((?:\^+)|(?:[a-zA-Z_][a-zA-Z_0-9]*))?\s*(-?)`)
 
+// New will try to parse any definitions it is given. If parsing fails,
+// *Stacklexer will be nil and error returned. If the definition parses
+// successfully, a *StackLexer is returned and error is nil.
 func New(definitions ...string) (*StackLexer, error) {
 	l := &StackLexer{
 		lexers:  make(map[string]*subLexer),
@@ -122,10 +128,17 @@ func New(definitions ...string) (*StackLexer, error) {
 	return l, nil
 }
 
+// InsertStart will insert a lexeme at the start of any results. This can be
+// helpful to add a special lexeme to indicate the beginning or add something
+// like a newline to make the format more consistent.
 func (l *StackLexer) InsertStart(kind, val string) *StackLexer {
 	l.insert.startKind, l.insert.startVal = kind, val
 	return l
 }
+
+// InsertEnd will insert a lexeme at the end of any results. This can be helpful
+// to add a special lexeme to indicate the end or add something like a newline
+// to make the format more consistent.
 func (l *StackLexer) InsertEnd(kind, val string) *StackLexer {
 	l.insert.endKind, l.insert.endVal = kind, val
 	return l

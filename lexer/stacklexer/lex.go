@@ -22,6 +22,7 @@ type lexOp struct {
 	lines int
 }
 
+// Lex fulfills parlex.Lexer. It uses the StackLexer to lex a string
 func (l *StackLexer) Lex(str string) []parlex.Lexeme {
 	op := &lexOp{
 		subLexer: l.start,

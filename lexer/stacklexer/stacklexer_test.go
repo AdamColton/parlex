@@ -16,8 +16,10 @@ func TestStacklexer(t *testing.T) {
     == innerLexer ==
       STOP ^
       innerword  /\w+/
+      foo /This will mask shared foo/
       shared
     == shared ==
+      foo
       space /\s+/ -
       nl /\n/ -
   `)
