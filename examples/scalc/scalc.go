@@ -75,10 +75,12 @@ var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
 var grmr = parlex.MustGrammar(grammar.New(grammarRules))
 var prsr = packrat.New(grmr)
 
+// Parse will return the root of the Parse Tree.
 func Parse(str string) parlex.ParseNode {
 	return rdcr.Reduce(prsr.Parse(lxr.Lex(str)))
 }
 
+// Eval will evaluate a string and return a stack of Pfloats.
 func Eval(str string) []Pfloat {
 	t := Parse(str)
 	if t == nil {
@@ -87,11 +89,13 @@ func Eval(str string) []Pfloat {
 	return evalStack(t.(*tree.PN))
 }
 
+// Pfloat or precision float represents a value and a precision.
 type Pfloat struct {
 	V float64
 	P int
 }
 
+// String fulfills stringer and prints the Pfloat to the correct precision.
 func (p Pfloat) String() string {
 	f := fmt.Sprintf("%%.%df", p.P)
 	return fmt.Sprintf(f, p.V)

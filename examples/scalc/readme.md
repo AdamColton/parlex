@@ -52,3 +52,7 @@ The command line tool is "scalc". Running it with no input will enter
 interactive mode. Type "exit" to exit. Running scalc with input will evaluate
 the input. Running "scalc parse [expression]" will show the parse tree for the
 expression.
+
+### Know Error
+There is a known bug that stack manipulation operators can cause panics. As this
+is just an example, it may or may not be fixed in the future.
