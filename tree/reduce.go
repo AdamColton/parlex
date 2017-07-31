@@ -18,11 +18,15 @@ func (r Reducer) Add(symbol string, reduction Reduction) {
 	r[symbol] = reduction
 }
 
+// Can returns true if a reducer has a rule for the given node
 func (r Reducer) Can(node parlex.ParseNode) bool {
 	_, has := r[node.Kind().String()]
 	return has
 }
 
+// Merge takes two Reducers and returns a single Reducer that is the merged
+// result. If a Kind is present in both r1 and r2, the merged will behave as
+// though running r1 then r2 on the node.
 func Merge(r1, r2 Reducer) Reducer {
 	merged := Reducer{}
 	for symbol, r2fn := range r2 {
@@ -86,27 +90,6 @@ func (r Reducer) RawReduce(node parlex.ParseNode) *PN {
 	return cp
 }
 
-// PromoteChild removes the node with the child at cIdx and replaces it's own
-// lexeme with the value. The grandchildren are spliced into the replaced childs
-// position. The cIdx value uses GetIdx.
-func (p *PN) PromoteChild(cIdx int) bool {
-	cIdx, l, ok := p.GetIdx(cIdx)
-	if !ok {
-		return false
-	}
-
-	p.Lexeme = p.C[cIdx].Lexeme
-	tail := p.C[cIdx].C
-	if cIdx+1 < l {
-		tail = append(tail, p.C[cIdx+1:]...)
-	}
-	p.C = append(p.C[0:cIdx], tail...)
-	for _, c := range p.C {
-		c.P = p
-	}
-	return true
-}
-
 // ReplaceWithChild replaces the node with the child at cIdx.
 func (p *PN) ReplaceWithChild(cIdx int) bool {
 	cIdx, _, ok := p.GetIdx(cIdx)
@@ -117,6 +100,7 @@ func (p *PN) ReplaceWithChild(cIdx int) bool {
 	return true
 }
 
+// RemoveAll removes all child that match any symbol in symbols
 func (p *PN) RemoveAll(symbols ...string) {
 	for i := 0; i < len(p.C); i++ {
 		if p.ChildAt(i, symbols...) {
@@ -126,6 +110,7 @@ func (p *PN) RemoveAll(symbols ...string) {
 	}
 }
 
+// RemoveAll removes all child that match any symbol in symbols
 func RemoveAll(symbols ...string) Reduction {
 	return func(node *PN) {
 		node.RemoveAll(symbols...)
@@ -179,21 +164,28 @@ func (p *PN) PromoteSingleChild() bool {
 	return false
 }
 
-// PromoteGrandChildren will remove all the immediate children and replace them
-// with the grand children.
-func (p *PN) PromoteGrandChildren() {
-	ct := 0
-	for _, child := range p.C {
-		ct += len(child.C)
+// PromoteChildValue returns a Reduction that will replace the value of the node
+// with the value from the child at cIdx and remove the child at cIdx. If cIdx
+// is negative, it will find the child relative to the end. If cIdx is out of
+// bounds, no action will be taken.
+func (p *PN) PromoteChildValue(cIdx int) {
+	l := len(p.C)
+	if cIdx < 0 {
+		cIdx = l + cIdx
 	}
-	newChildren := make([]*PN, 0, ct)
-	for _, child := range p.C {
-		for _, grandChild := range child.C {
-			grandChild.P = p
-		}
-		newChildren = append(newChildren, child.C...)
+	if cIdx >= 0 && l > cIdx {
+		p.Lexeme = lexeme.New(p.Kind()).Set(p.C[cIdx].Value())
 	}
-	p.C = newChildren
+	p.RemoveChild(cIdx)
+}
+
+// ChildIs returns true if the child at cIdx is of type kind
+func (p *PN) ChildIs(cIdx int, kind string) bool {
+	cIdx, _, ok := p.GetIdx(cIdx)
+	if !ok {
+		return false
+	}
+	return p.Child(cIdx).Kind().String() == kind
 }
 
 // PromoteChildrenOf will remove the child at cIdx and splice in all it's
@@ -212,29 +204,9 @@ func (p *PN) PromoteChildrenOf(cIdx int) bool {
 	return true
 }
 
-// PromoteChildValue returns a Reduction that will replace the value of the node
-// with the value from the child at cIdx and remove the child at cIdx. If cIdx
-// is negative, it will find the child relative to the end. If cIdx is out of
-// bounds, no action will be taken.
-func (p *PN) PromoteChildValue(cIdx int) {
-	l := len(p.C)
-	if cIdx < 0 {
-		cIdx = l + cIdx
-	}
-	if cIdx >= 0 && l > cIdx {
-		p.Lexeme = lexeme.New(p.Kind()).Set(p.C[cIdx].Value())
-	}
-	p.RemoveChild(cIdx)
-}
-
-func (p *PN) ChildIs(cIdx int, kind string) bool {
-	cIdx, _, ok := p.GetIdx(cIdx)
-	if !ok {
-		return false
-	}
-	return p.Child(cIdx).Kind().String() == kind
-}
-
+// PromoteChildrenOf will remove the child at cIdx and splice in all it's
+// children. If cIdx is negative, it will find the child relative to the end. If
+// cIdx is out of bounds, no action will be taken.
 func PromoteChildrenOf(cIdx int) Reduction {
 	return func(node *PN) {
 		node.PromoteChildrenOf(cIdx)
@@ -249,6 +221,25 @@ func PromoteChildValue(cIdx int) Reduction {
 	return func(node *PN) { node.PromoteChildValue(cIdx) }
 }
 
+// PromoteGrandChildren will remove all the immediate children and replace them
+// with the grand children.
+func (p *PN) PromoteGrandChildren() {
+	ct := 0
+	for _, child := range p.C {
+		ct += len(child.C)
+	}
+	newChildren := make([]*PN, 0, ct)
+	for _, child := range p.C {
+		for _, grandChild := range child.C {
+			grandChild.P = p
+		}
+		newChildren = append(newChildren, child.C...)
+	}
+	p.C = newChildren
+}
+
+// PromoteGrandChildren will remove all the immediate children and replace them
+// with the grand children.
 func PromoteGrandChildren() func(*PN) {
 	return func(node *PN) {
 		node.PromoteGrandChildren()
@@ -277,6 +268,30 @@ func ReplaceWithChild(cIdx int) Reduction {
 	return func(node *PN) { node.ReplaceWithChild(cIdx) }
 }
 
+// PromoteChild removes the node with the child at cIdx and replaces it's own
+// lexeme with the value. The grandchildren are spliced into the replaced childs
+// position. The cIdx value uses GetIdx.
+func (p *PN) PromoteChild(cIdx int) bool {
+	cIdx, l, ok := p.GetIdx(cIdx)
+	if !ok {
+		return false
+	}
+
+	p.Lexeme = p.C[cIdx].Lexeme
+	tail := p.C[cIdx].C
+	if cIdx+1 < l {
+		tail = append(tail, p.C[cIdx+1:]...)
+	}
+	p.C = append(p.C[0:cIdx], tail...)
+	for _, c := range p.C {
+		c.P = p
+	}
+	return true
+}
+
+// PromoteChild removes the node with the child at cIdx and replaces it's own
+// lexeme with the value. The grandchildren are spliced into the replaced childs
+// position. The cIdx value uses GetIdx.
 func PromoteChild(cIdx int) func(*PN) {
 	return func(node *PN) {
 		node.PromoteChild(cIdx)
@@ -290,8 +305,11 @@ func chain(r1, r2 Reduction) Reduction {
 	}
 }
 
+// Condition is a function that takes a node and return a bool. It can be used
+// as the condition on an If in a Reduction chain.
 type Condition func(node *PN) bool
 
+// If allows a chain to perform conditional logic
 func If(condition Condition, then, otherwise Reduction) Reduction {
 	return func(node *PN) {
 		if condition(node) {
@@ -306,6 +324,7 @@ func If(condition Condition, then, otherwise Reduction) Reduction {
 	}
 }
 
+// If allows a chain to perform conditional logic
 func (r Reduction) If(condition Condition, then, otherwise Reduction) Reduction {
 	return func(node *PN) {
 		r(node)
@@ -321,12 +340,16 @@ func (r Reduction) If(condition Condition, then, otherwise Reduction) Reduction 
 	}
 }
 
+// ChildIs returns true if the child at cIdx is of type kind
 func ChildIs(cIdx int, kind string) Condition {
 	return func(node *PN) bool {
 		return node.ChildIs(cIdx, kind)
 	}
 }
 
+// PromoteChildrenOf will remove the child at cIdx and splice in all it's
+// children. If cIdx is negative, it will find the child relative to the end. If
+// cIdx is out of bounds, no action will be taken.
 func (r Reduction) PromoteChildrenOf(cIdx int) Reduction {
 	return chain(r, PromoteChildrenOf(cIdx))
 }
@@ -339,10 +362,13 @@ func (r Reduction) PromoteChildValue(cIdx int) Reduction {
 	return chain(r, PromoteChildValue(cIdx))
 }
 
+// PromoteGrandChildren will remove all the immediate children and replace them
+// with the grand children.
 func (r Reduction) PromoteGrandChildren() func(*PN) {
 	return chain(r, PromoteGrandChildren())
 }
 
+// RemoveAll removes all child that match any symbol in symbols
 func (r Reduction) RemoveAll(symbols ...string) Reduction {
 	return chain(r, RemoveAll(symbols...))
 }
@@ -369,6 +395,9 @@ func (r Reduction) ReplaceWithChild(cIdx int) Reduction {
 	return chain(r, ReplaceWithChild(cIdx))
 }
 
+// PromoteChild removes the node with the child at cIdx and replaces it's own
+// lexeme with the value. The grandchildren are spliced into the replaced childs
+// position. The cIdx value uses GetIdx.
 func (r Reduction) PromoteChild(cIdx int) func(*PN) {
 	return chain(r, PromoteChild(cIdx))
 }

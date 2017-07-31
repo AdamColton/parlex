@@ -114,7 +114,7 @@ func (p *PN) sliceReq() int {
 	}
 	r := 3 // B
 	if p.Lexeme.Value() != "" {
-		r += 1 // C
+		r++ // C
 	}
 	if len(p.C) > 0 {
 		r += 2 // D
@@ -153,6 +153,7 @@ func (p *PN) ChildAt(cIdx int, symbs ...string) bool {
 	return false
 }
 
+// Clone takes a node and clones it and all it's children.
 func Clone(node parlex.ParseNode) *PN {
 	pn := &PN{
 		Lexeme: &lexeme.Lexeme{
