@@ -26,6 +26,8 @@ func New(kind parlex.Symbol) *Lexeme {
 	}
 }
 
+// String is a helper that takes a string and returns a Lexeme with whose kind
+// will be the given string.
 func String(str string) *Lexeme {
 	return &Lexeme{
 		K: symbol(str),
@@ -66,6 +68,7 @@ func (l *Lexeme) Value() string { return l.V }
 // the original string.
 func (l *Lexeme) Pos() (int, int) { return l.L, l.C }
 
+// String returns a formatted representation of the lexeme.
 func (l *Lexeme) String() string {
 	pos := ""
 	if l.L != -1 {
