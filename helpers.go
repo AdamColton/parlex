@@ -76,15 +76,6 @@ func MustGrammar(g Grammar, err error) Grammar {
 	return g
 }
 
-// HasNonTerminal returns true if the given grammar has the given symbol as a
-// non-terminal
-func HasNonTerminal(g Grammar, s Symbol) bool {
-	if g == nil {
-		return false
-	}
-	return g.Productions(s) != nil
-}
-
 // LexError allows a Lexer to try to continue lexing when it encounters an error
 // and return useful error values.
 type LexError interface {
