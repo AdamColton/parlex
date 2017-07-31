@@ -6,27 +6,24 @@ import (
 	"strings"
 )
 
+// Set is a collection of symbols and can map a symbol string to an int or an
+// int to it's string.
 type Set struct {
 	str2sym  map[string]int
 	symb2str []string
 }
 
+// New creates a new, empty set.
 func New() *Set {
 	return &Set{
 		str2sym: make(map[string]int),
 	}
 }
 
-type Symbol struct {
-	val int
-	set *Set
-}
-
-func (s *Symbol) String() string { return s.set.symb2str[s.val] }
-
-func (s *Symbol) Idx() int { return s.val }
-
+// Size returns the number of symbols in the set
 func (s *Set) Size() int { return len(s.symb2str) }
+
+// ByIdx gets a symbol by index from the set
 func (s *Set) ByIdx(idx int) *Symbol {
 	if idx > len(s.symb2str) {
 		return nil
@@ -37,6 +34,8 @@ func (s *Set) ByIdx(idx int) *Symbol {
 	}
 }
 
+// Idx takes a symbol and returns it's index value. If the symbol is not already
+// in the set, it will be added.
 func (s *Set) Idx(symbol parlex.Symbol) int {
 	if cast, ok := symbol.(*Symbol); ok && cast.set == s {
 		return cast.val
@@ -48,6 +47,7 @@ func (s *Set) Idx(symbol parlex.Symbol) int {
 	return idx
 }
 
+// Symbol takes any parlex.Symbol and returns a setsymbol.Symbol
 func (s *Set) Symbol(symbol parlex.Symbol) *Symbol {
 	if symbol == nil {
 		return nil
@@ -58,6 +58,8 @@ func (s *Set) Symbol(symbol parlex.Symbol) *Symbol {
 	return s.Str(symbol.String())
 }
 
+// Str takes any string and returns it as symbol. If it is not already a part of
+// the set, it is added.
 func (s *Set) Str(str string) *Symbol {
 	if val, ok := s.str2sym[str]; ok {
 		return &Symbol{
@@ -74,11 +76,13 @@ func (s *Set) Str(str string) *Symbol {
 	return sym
 }
 
+// Has returns true if the set already contains the string
 func (s *Set) Has(str string) bool {
 	_, has := s.str2sym[str]
 	return has
 }
 
+// HasSymbol returns true if the set already contains the symbol.
 func (s *Set) HasSymbol(symbol parlex.Symbol) *Symbol {
 	if cast, ok := symbol.(*Symbol); ok && cast.set == s {
 		return cast
@@ -93,11 +97,25 @@ func (s *Set) HasSymbol(symbol parlex.Symbol) *Symbol {
 	}
 }
 
+// Symbol represents a symbol as int belonging to a set
+type Symbol struct {
+	val int
+	set *Set
+}
+
+// String gets the string for symbol
+func (s *Symbol) String() string { return s.set.symb2str[s.val] }
+
+// Idx gets the symbol's index
+func (s *Symbol) Idx() int { return s.val }
+
+// Production implements parlex.Production using set symbols.
 type Production struct {
 	symbs []int
 	set   *Set
 }
 
+// Production returns a production using the set
 func (s *Set) Production(symbols ...parlex.Symbol) *Production {
 	p := &Production{
 		symbs: make([]int, len(symbols)),
@@ -109,18 +127,22 @@ func (s *Set) Production(symbols ...parlex.Symbol) *Production {
 	return p
 }
 
+// Iter returns a ProductionIterator
 func (p *Production) Iter() *parlex.ProductionIterator {
 	return &parlex.ProductionIterator{
 		Production: p,
 	}
 }
 
+// AddSymbols appends symbols to the production
 func (p *Production) AddSymbols(symbols ...parlex.Symbol) {
 	for _, symbol := range symbols {
 		p.symbs = append(p.symbs, p.set.Symbol(symbol).val)
 	}
 }
 
+// CastProduction will take any parlex.Production and cast it to a
+// setsymbol.Production including the underlying symbols.
 func (s *Set) CastProduction(production parlex.Production) *Production {
 	if production == nil {
 		return nil
@@ -148,6 +170,7 @@ func (p *Production) String() string {
 	return strings.Join(strs, " ")
 }
 
+// Symbols returns the number of symbols in the production
 func (p *Production) Symbols() int {
 	if p == nil {
 		return 0
@@ -155,6 +178,7 @@ func (p *Production) Symbols() int {
 	return len(p.symbs)
 }
 
+// Symbol returns the symbol at the given index
 func (p *Production) Symbol(i int) parlex.Symbol {
 	if i < len(p.symbs) {
 		return &Symbol{
@@ -165,17 +189,20 @@ func (p *Production) Symbol(i int) parlex.Symbol {
 	return nil
 }
 
+// Productions fulfills parlex.Productions
 type Productions struct {
 	prods [][]int
 	set   *Set
 }
 
+// Iter returns a ProductionsIterator
 func (p *Productions) Iter() *parlex.ProductionsIterator {
 	return &parlex.ProductionsIterator{
 		Productions: p,
 	}
 }
 
+// String will represent a production as a string
 func (p *Productions) String() string {
 	if p == nil {
 		return "{nil}"
@@ -192,6 +219,7 @@ func (p *Productions) String() string {
 	return "{" + strings.Join(strsout, " ") + "}"
 }
 
+// Productions will create a Productions from the given productions
 func (s *Set) Productions(productions ...parlex.Production) *Productions {
 	p := &Productions{
 		prods: make([][]int, len(productions)),
@@ -203,6 +231,7 @@ func (s *Set) Productions(productions ...parlex.Production) *Productions {
 	return p
 }
 
+// CastProductions will cast any parlex.Productions to a setsymbol.Productions.
 func (s *Set) CastProductions(productions parlex.Productions) *Productions {
 	if productions == nil {
 		return nil
@@ -221,6 +250,7 @@ func (s *Set) CastProductions(productions parlex.Productions) *Productions {
 	return p
 }
 
+// Productions returns the number of productions
 func (p *Productions) Productions() int {
 	if p == nil {
 		return 0
@@ -228,6 +258,7 @@ func (p *Productions) Productions() int {
 	return len(p.prods)
 }
 
+// Production returns the production at the given index
 func (p *Productions) Production(i int) parlex.Production {
 	if i < len(p.prods) {
 		return &Production{
@@ -238,12 +269,15 @@ func (p *Productions) Production(i int) parlex.Production {
 	return nil
 }
 
+// AddProductions appends a production
 func (p *Productions) AddProductions(productions ...parlex.Production) {
 	for _, prod := range productions {
 		p.prods = append(p.prods, p.set.CastProduction(prod).symbs)
 	}
 }
 
+// LoadGrammar takes a grammar and loads all the symbols into the set. This is
+// useful to get the size of the set.
 func (s *Set) LoadGrammar(grammar parlex.Grammar) {
 	for _, nt := range grammar.NonTerminals() {
 		s.Symbol(nt)
@@ -255,6 +289,8 @@ func (s *Set) LoadGrammar(grammar parlex.Grammar) {
 	}
 }
 
+// LoadLexemes takes a slice of Lexemes and loads the symbols. This is
+// useful to get the size of the set.
 func (s *Set) LoadLexemes(lexemes []parlex.Lexeme) []*lexeme.Lexeme {
 	out := make([]*lexeme.Lexeme, len(lexemes))
 	for i, lx := range lexemes {
