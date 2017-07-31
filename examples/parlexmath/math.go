@@ -1,15 +1,12 @@
-package main
+package parlexmath
 
 import (
-	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/packrat"
 	"github.com/adamcolton/parlex/tree"
-	"os"
 	"strconv"
-	"strings"
 )
 
 const lexerRules = `
@@ -45,13 +42,14 @@ var reducer = tree.Reducer{
 
 var runner = parlex.New(lxr, prsr, reducer)
 
-func main() {
-	tr, err := runner.Run(strings.Join(os.Args[1:], " "))
+// Eval takes an expression and tries to evaluate it. If the evaluation is
+// successful, the value is returned. If not, an error is returned.
+func Eval(expr string) (float64, error) {
+	tr, err := runner.Run(expr)
 	if err != nil {
-		fmt.Fprint(os.Stderr, err)
-		return
+		return 0, err
 	}
-	fmt.Println(eval(tr))
+	return eval(tr), nil
 }
 
 func eval(node parlex.ParseNode) float64 {

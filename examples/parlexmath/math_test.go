@@ -1,4 +1,4 @@
-package main
+package parlexmath
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -17,11 +17,10 @@ func TestMath(t *testing.T) {
 		"-1.5*-4":       6,
 	}
 	for str, i := range expected {
-		tr, err := runner.Run(str)
+		ei, err := Eval(str)
 		assert.NoError(t, err)
-		ei := eval(tr)
 		if ei != i {
-			t.Errorf("Got %d, expectd: %d\n%s", ei, i, tr)
+			t.Errorf("Got %d, expectd: %d\n", ei, i)
 		}
 	}
 }
