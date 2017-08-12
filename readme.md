@@ -8,3 +8,12 @@ exist to fulfill all of the interfaces.
 
 The core package also implements some helpers than use only the interface
 specification.
+
+A few highlights; The
+[stacklexer](https://github.com/AdamColton/parlex/tree/master/lexer/stacklexer)
+provides a powerful, easy to use lexer that can reduce the complexity of a
+grammar. The
+[regexgram](https://github.com/AdamColton/parlex/tree/master/grammar/regexgram)
+package supports some regex operators when defining a grammar. The
+[packrat](https://github.com/AdamColton/parlex/tree/master/parser/packrat)
+parser is a fairly efficient parser that can handle left recursion.
