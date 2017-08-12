@@ -41,9 +41,18 @@ func TestJSON(t *testing.T) {
 	assert.Equal(t, tr1.(*tree.PN).String(), tr2.(*tree.PN).String())
 }
 
-func TestParseFailure(t *testing.T) {
+func TestParseFailures(t *testing.T) {
 	s := "test"
 	lxms := lxr.Lex(s)
 	errs := parlex.LexErrors(lxms)
 	assert.Len(t, errs, 1)
+	_, err := runner.Run(s)
+	assert.Error(t, err)
+
+	s = `{
+		"a":1,
+		"b":2,
+	}`
+	_, err = runner.Run(s)
+	assert.Error(t, err)
 }

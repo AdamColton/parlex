@@ -110,12 +110,6 @@ func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 	accept.end = len(lexemes)
 	accepted := op.memo[accept]
 	if accepted.end != accept.end {
-		var best treeDef
-		for _, td := range op.markers[accept.treeMarker] {
-			if td.end > best.end {
-				best = td
-			}
-		}
 		return nil
 	}
 	return accepted.toPN(op.lxms, op.memo, op.set)

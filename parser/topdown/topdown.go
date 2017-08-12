@@ -43,7 +43,11 @@ func (t *Topdown) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 		set:     set,
 	}
 	start := op.set.Symbol(nts[0]).Idx()
-	return op.accept(treeKey{start, 0}, true).node()
+	node := op.accept(treeKey{start, 0}, true).node()
+	if node == nil {
+		return nil
+	}
+	return node
 }
 
 type treeKey struct {
