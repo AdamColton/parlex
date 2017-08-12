@@ -1,3 +1,4 @@
+// Package topdown implements a topdown parser.
 package topdown
 
 import (

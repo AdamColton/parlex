@@ -174,7 +174,8 @@ func (p *PN) PromoteChildValue(cIdx int) {
 		cIdx = l + cIdx
 	}
 	if cIdx >= 0 && l > cIdx {
-		p.Lexeme = lexeme.New(p.Kind()).Set(p.C[cIdx].Value())
+		ch := p.C[cIdx]
+		p.Lexeme = lexeme.New(p.Kind()).Set(ch.Value()).At(ch.Pos())
 	}
 	p.RemoveChild(cIdx)
 }

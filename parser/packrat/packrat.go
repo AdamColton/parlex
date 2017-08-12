@@ -1,3 +1,6 @@
+// Package packrat implements a packrat parser based on
+// http://web.cs.ucla.edu/~todd/research/pepm08.pdf . It can handle left
+// recursion.
 package packrat
 
 import (
