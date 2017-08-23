@@ -202,3 +202,23 @@ func TestOuputReducer(t *testing.T) {
 
 	assert.Equal(t, expected.String(), pn.(*tree.PN).String())
 }
+
+func TestDontRepeatRepeat(t *testing.T) {
+	grammarString := `
+    rule1 -> lexeme1* lexeme2
+    rule2 -> lexeme1* lexeme3
+  `
+	grmr, rdcr, err := New(grammarString)
+	assert.NotNil(t, rdcr)
+	assert.NoError(t, err)
+
+	expectedStr := `
+    rule1    -> lexeme1* lexeme2
+    rule2    -> lexeme1* lexeme3
+    lexeme1* -> lexeme1 lexeme1*
+             ->
+  `
+	expectGrmr, err := grammar.New(expectedStr)
+	assert.NoError(t, err)
+	assert.Equal(t, expectGrmr.String(), grmr.String())
+}

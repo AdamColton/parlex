@@ -116,6 +116,7 @@ type evalOp struct {
 	stack     []*tree.PN
 	nonterm   string
 	bludgeons map[string][]string
+	done      map[string]rules
 }
 
 func evalGrammar(node *tree.PN) (*grammar.Grammar, tree.Reducer) {
@@ -124,6 +125,7 @@ func evalGrammar(node *tree.PN) (*grammar.Grammar, tree.Reducer) {
 		set:       setsymbol.New(),
 		rdcr:      tree.Reducer{},
 		bludgeons: make(map[string][]string),
+		done:      make(map[string]rules),
 	}
 	for _, c := range node.C {
 		if c.Kind().String() == "Production" {
@@ -193,6 +195,9 @@ func (op *evalOp) evalSymbol(node *tree.PN) rules {
 // And adds a rule to the reducer
 func (op *evalOp) addRepeatAsProduction(node *tree.PN) rules {
 	symName := op.getName(node)
+	if rs, ok := op.done[symName]; ok {
+		return rs
+	}
 	cp := tree.Clone(node)
 
 	symNode := &tree.PN{
@@ -222,7 +227,9 @@ func (op *evalOp) addRepeatAsProduction(node *tree.PN) rules {
 	op.stack = append(op.stack, nilProd)
 	op.bludgeons[op.nonterm] = append(op.bludgeons[op.nonterm], symName)
 
-	return rules{rule{symName}}
+	rs := rules{rule{symName}}
+	op.done[symName] = rs
+	return rs
 }
 
 func bludgeon(symbols []string) func(*tree.PN) {
