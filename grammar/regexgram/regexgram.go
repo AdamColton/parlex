@@ -195,6 +195,7 @@ func (op *evalOp) evalSymbol(node *tree.PN) rules {
 // And adds a rule to the reducer
 func (op *evalOp) addRepeatAsProduction(node *tree.PN) rules {
 	symName := op.getName(node)
+	op.bludgeons[op.nonterm] = append(op.bludgeons[op.nonterm], symName)
 	if rs, ok := op.done[symName]; ok {
 		return rs
 	}
@@ -225,7 +226,6 @@ func (op *evalOp) addRepeatAsProduction(node *tree.PN) rules {
 		},
 	}
 	op.stack = append(op.stack, nilProd)
-	op.bludgeons[op.nonterm] = append(op.bludgeons[op.nonterm], symName)
 
 	rs := rules{rule{symName}}
 	op.done[symName] = rs
