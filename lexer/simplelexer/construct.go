@@ -1,17 +1,12 @@
 package simplelexer
 
 import (
-	"errors"
 	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"regexp"
 	"strings"
 )
-
-// ErrDuplicateKind will be thrown if a rule is duplicated. Instead, use regexp
-// concatination.
-var ErrDuplicateKind = errors.New("Duplicate Kind")
 
 // DefaultErrorString is the value that will be assigned to any lex errors
 var DefaultErrorString = "Error"
@@ -94,7 +89,7 @@ func (l *Lexer) Add(kind parlex.Symbol, re *regexp.Regexp, discard bool) error {
 func (l *Lexer) addRule(r *rule) error {
 	if r.kind < len(l.rules) {
 		if l.rules[r.kind] != nil {
-			return ErrDuplicateKind
+			return fmt.Errorf("Duplicate Kind: %s", l.set.ByIdx(r.kind).String())
 		}
 	} else {
 		l.rules = append(l.rules, make([]*rule, 1+r.kind-len(l.rules))...)

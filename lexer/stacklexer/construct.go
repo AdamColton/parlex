@@ -128,6 +128,15 @@ func New(definitions ...string) (*StackLexer, error) {
 	return l, nil
 }
 
+// Must will parse the definitions given and panic if there is an error.
+func Must(definitions ...string) *StackLexer {
+	sl, err := New(definitions...)
+	if err != nil {
+		panic(err)
+	}
+	return sl
+}
+
 // InsertStart will insert a lexeme at the start of any results. This can be
 // helpful to add a special lexeme to indicate the beginning or add something
 // like a newline to make the format more consistent.
