@@ -158,6 +158,7 @@ func (op *lexOp) checkError() {
 	val := string(op.b[op.err.start:op.cur])
 	lx := lexeme.New(op.err.kind).Set(val)
 	op.handleLineCol(lx, lx.V)
+	lx.C -= len(val)
 	op.lxs = append(op.lxs, &errLexeme{lx})
 }
 

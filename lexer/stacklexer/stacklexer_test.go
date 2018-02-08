@@ -174,7 +174,22 @@ func TestLexerError(t *testing.T) {
 	assert.Len(t, lxms, 5)
 
 	errs := parlex.LexErrors(lxms)
-	assert.Len(t, errs, 2)
+	expected := []parlex.LexError{
+		&errLexeme{&lexeme.Lexeme{
+			K: lxr.set.Str(lxr.Error),
+			V: "error1",
+			L: 1,
+			C: 9,
+		}},
+		&errLexeme{&lexeme.Lexeme{
+			K: lxr.set.Str(lxr.Error),
+			V: "error2",
+			L: 1,
+			C: 20,
+		}},
+	}
+	assert.Equal(t, expected, errs)
+
 }
 
 func TestDoublePop(t *testing.T) {
