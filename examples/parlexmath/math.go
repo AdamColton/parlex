@@ -33,7 +33,10 @@ var prsr = packrat.New(grmr)
 
 var reducer = tree.Reducer{
 	"E": func(node *tree.PN) {
-		if !node.PromoteSingleChild() {
+		switch node.Children() {
+		case 1, 2:
+			node.PromoteChild(0)
+		case 3:
 			node.PromoteChild(1)
 		}
 	},
@@ -57,7 +60,16 @@ func eval(node parlex.ParseNode) float64 {
 	case "number":
 		i, _ := strconv.ParseFloat(node.Value(), 64)
 		return i
-	case "op1", "op2":
+	case "op2":
+		if node.Children() == 1 {
+			a := eval(node.Child(0))
+			if node.Value() == "-" {
+				a = -a
+			}
+			return a
+		}
+		fallthrough
+	case "op1":
 		a := eval(node.Child(0))
 		b := eval(node.Child(1))
 		switch node.Value() {

@@ -166,5 +166,5 @@ func (p *ProductionsIterator) Next() bool {
 		return false
 	}
 	p.Production = p.Productions.Production(p.Idx)
-	return p.Symbol != nil
+	return true
 }

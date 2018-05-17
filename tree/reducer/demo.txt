@@ -1,0 +1,16 @@
+Value       PromoteSingleChild
+Object      RemoveChildren(0, -1)               // remove { }
+Array       RemoveChildren(0, -1)               // remove [ ]
+KeyVal      PromoteChildValue(0).RemoveChild(0) // Promote key, remove :
+MoreVals    ReplaceWithChild(1)
+MoreKeyVals ReplaceWithChild(1)
+
+OR
+
+Value       PromoteSingleChild
+Object      RemoveChildren(0, -1) // remove { }
+Array       RemoveChildren(0, -1) // remove [ ]
+KeyVal      PromoteChildValue(0). // Promote key
+            RemoveChild(0)        // remove :
+MoreVals    ReplaceWithChild(1)
+MoreKeyVals ReplaceWithChild(1)

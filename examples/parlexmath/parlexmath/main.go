@@ -8,7 +8,12 @@ import (
 )
 
 func main() {
-	v, err := parlexmath.Eval(strings.Join(os.Args[1:], " "))
+	input := strings.Join(os.Args[1:], " ")
+	if input == "" {
+		fmt.Fprint(os.Stderr, "Please provide input to parse\n")
+		return
+	}
+	v, err := parlexmath.Eval(input)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
 		return

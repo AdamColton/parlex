@@ -7,46 +7,48 @@ import (
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/topdown"
 	"github.com/adamcolton/parlex/tree"
+	"github.com/adamcolton/parlex/tree/reducer"
 )
 
-const lexerRules = `
-  space  /\s+/ -
-  number /\d*\.?\d+/
-  string /(\"([^\"\\]|(\\.))*\")/
-  bool   /(true)|(false)/
-  null
-  comma  /,/
-  lcb    /\{/
-  rcb    /\}/
-  lb     /\[/
-  rb     /\]/
-  colon  /:/
-`
+const (
+	lexerRules = `
+		space  /\s+/ -
+		number /\d*\.?\d+/
+		string /(\"([^\"\\]|(\\.))*\")/
+		bool   /(true)|(false)/
+		null
+		comma  /,/
+		lcb    /\{/
+		rcb    /\}/
+		lb     /\[/
+		rb     /\]/
+		colon  /:/
+	`
+	grammarRules = `
+ 		Value       -> string | number | bool | null | Array | Object
+ 		Array       -> lb ( Value MoreVals* )? rb
+ 		MoreVals    -> comma Value
+ 		Object      -> lcb ( KeyVal MoreKeyVals* )? rcb
+ 		MoreKeyVals -> comma KeyVal
+ 		KeyVal      -> string colon Value
+ 	`
+	reduceRules = `
+		Value       PromoteSingleChild
+		Object      RemoveChildren(0, -1)               // remove { }
+		Array       RemoveChildren(0, -1)               // remove [ ]
+		KeyVal      PromoteChildValue(0).RemoveChild(0) // Promote key, remove :
+		MoreVals    ReplaceWithChild(1)
+		MoreKeyVals ReplaceWithChild(1)
+	`
+)
 
-var lxr = parlex.MustLexer(simplelexer.New(lexerRules))
-
-const grammarRules = `
-  Value       -> string | number | bool | null | Array | Object
-  Array       -> lb ( Value MoreVals* )? rb
-  MoreVals    -> comma Value
-  Object      -> lcb ( KeyVal MoreKeyVals* )? rcb
-  MoreKeyVals -> comma KeyVal
-  KeyVal      -> string colon Value
-`
-
-var grmr, grmrRdcr = regexgram.Must(grammarRules)
-var prsr = parlex.MustParser(topdown.New(grmr))
-
-var rdcr = tree.Merge(grmrRdcr, tree.Reducer{
-	"Value":       tree.PromoteSingleChild,
-	"Object":      tree.RemoveChildren(0, -1),               // remove { }
-	"Array":       tree.RemoveChildren(0, -1),               // remove [ ]
-	"KeyVal":      tree.PromoteChildValue(0).RemoveChild(0), // Promote key, remove :
-	"MoreVals":    tree.ReplaceWithChild(1),
-	"MoreKeyVals": tree.ReplaceWithChild(1),
-})
-
-var runner = parlex.New(lxr, prsr, rdcr)
+var (
+	lxr            = parlex.MustLexer(simplelexer.New(lexerRules))
+	grmr, grmrRdcr = regexgram.Must(grammarRules)
+	prsr           = parlex.MustParser(topdown.New(grmr))
+	rdcr           = tree.Merge(grmrRdcr, reducer.Must(reduceRules))
+	runner         = parlex.New(lxr, prsr, rdcr)
+)
 
 // Format takes a json string and formats it, returning it as a string. If there
 // is an error, that will be returned with an empty string.

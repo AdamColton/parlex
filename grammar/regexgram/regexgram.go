@@ -1,7 +1,6 @@
 package regexgram
 
 import (
-	"fmt"
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexeme"
@@ -11,8 +10,6 @@ import (
 	"github.com/adamcolton/parlex/tree"
 	"strings"
 )
-
-var _ = fmt.Println
 
 const lexerProductions = `
   rarr     /->/

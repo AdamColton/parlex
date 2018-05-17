@@ -19,6 +19,10 @@ func TestParseNode(t *testing.T) {
 }
 
 func TestParseNodeString(t *testing.T) {
+	nilPn, err := New(`this is not a valid tree`)
+	assert.Nil(t, nilPn)
+	assert.Equal(t, "Bad Tree String", err.Error())
+
 	pn1, err := New(`
 		E {
 			E {
@@ -42,7 +46,6 @@ func TestParseNodeString(t *testing.T) {
 	if pn1.String() != pn2.String() {
 		t.Error(pn1.String(), pn2.String())
 	}
-
 }
 
 func TestReTreeLine(t *testing.T) {
@@ -71,5 +74,37 @@ func TestReTreeLine(t *testing.T) {
 			assert.Equal(t, 0, len(m[0]))
 		}
 	}
+}
 
+func TestParseNodeSize(t *testing.T) {
+	pn1, err := New(`
+		E {
+			E {
+				int: "1"
+			}
+			op: "+"
+			E {
+				int: "2"
+			}
+	  }
+  `)
+	assert.NoError(t, err)
+	assert.Equal(t, 6, pn1.Size())
+}
+
+func TestParseNodeClone(t *testing.T) {
+	pn1, err := New(`
+		E {
+			E {
+				int: "1"
+			}
+			op: "+"
+			E {
+				int: "2"
+			}
+	  }
+  `)
+	assert.NoError(t, err)
+	pn2 := Clone(pn1)
+	assert.Equal(t, pn1.String(), pn2.String())
 }
