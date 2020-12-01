@@ -71,12 +71,10 @@ type lexOp struct {
 // Lex takes a string and produces a slice of lexemes that can be consumed by a
 // parser.
 func (l *Lexer) Lex(str string) []parlex.Lexeme {
-	if str == "" {
-		return nil
-	}
 	op := &lexOp{
 		Lexer: l,
 		b:     []byte(str),
+		lxs:   make([]parlex.Lexeme, 0),
 	}
 
 	if op.insert.startKind != "" {
@@ -114,7 +112,7 @@ func (l *Lexer) Lex(str string) []parlex.Lexeme {
 }
 
 func (op *lexOp) checkError() {
-	if !op.errFlag {
+	if !op.errFlag || op.cur > len(op.b) {
 		return
 	}
 	op.errFlag = false

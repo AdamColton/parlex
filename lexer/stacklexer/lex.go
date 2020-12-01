@@ -28,6 +28,7 @@ func (l *StackLexer) Lex(str string) []parlex.Lexeme {
 		subLexer: l.start,
 		b:        []byte(str),
 		lines:    1,
+		lxs:      make([]parlex.Lexeme, 0),
 	}
 	op.err.kind = l.set.Str(op.Error)
 	if op.insert.startKind != "" {
@@ -151,7 +152,7 @@ func (op *lexOp) handleLineCol(lx *lexeme.Lexeme, str string) {
 }
 
 func (op *lexOp) checkError() {
-	if !op.err.flag {
+	if !op.err.flag || op.cur > len(op.b) {
 		return
 	}
 	op.err.flag = false
@@ -175,7 +176,7 @@ func (op *lexOp) updateNext() {
 }
 
 func (op *lexOp) consumeRemainingAsError() {
-	if op.cur == len(op.b) {
+	if op.cur >= len(op.b) {
 		return
 	}
 	op.setError()

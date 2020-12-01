@@ -1,6 +1,8 @@
 package regexgram
 
 import (
+	"strings"
+
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexeme"
@@ -8,7 +10,6 @@ import (
 	"github.com/adamcolton/parlex/parser/packrat"
 	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"github.com/adamcolton/parlex/tree"
-	"strings"
 )
 
 const lexerProductions = `
@@ -75,11 +76,11 @@ var rdcr = tree.Reducer{
 	"Productions": tree.
 		PromoteChildrenOf(1), // promote children of Productions
 	"Production": tree.
-		RemoveChildren(0, 1). // remove new-line and rarr
+		RemoveChildren(0, 2). // remove new-line and rarr
 		PromoteChildValue(0). // promote the non-terminal to be the production value
 		PromoteChildrenOf(0), // replace Symbols with it's children
 	"ContinueProd": tree.
-		RemoveChildren(0, 0). // remove new-line and rarr
+		RemoveChildren(0, 1). // remove new-line and rarr
 		PromoteChildrenOf(0), // replace Symbols with it's children
 	"Symbols": tree.
 		PromoteChildrenOf(-1), // Children of last will be either more symbols or nil
@@ -281,7 +282,9 @@ func mergeRules(a, b rules) rules {
 	var out rules
 	for _, ra := range a {
 		for _, rb := range b {
-			out = append(out, append(ra, rb...))
+			cp := make(rule, len(ra))
+			copy(cp, ra)
+			out = append(out, append(cp, rb...))
 		}
 	}
 	return out

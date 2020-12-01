@@ -220,3 +220,23 @@ func TestDoublePop(t *testing.T) {
 		assert.Equal(t, "bar", lxms[4].Kind().String())
 	}
 }
+
+func TestEmptyEdgeCases(t *testing.T) {
+	lxr, err := New(`
+		== Main ==
+	    test
+	    word /\w+/
+	    space /\s+/ -
+  `)
+	assert.NoError(t, err)
+
+	testCases := []string{
+		" ",
+		"",
+	}
+	for _, tc := range testCases {
+		lxs := lxr.Lex(tc)
+		assert.NotNil(t, lxs)
+		assert.Len(t, lxs, 0)
+	}
+}

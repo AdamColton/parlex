@@ -222,3 +222,25 @@ func TestDontRepeatRepeat(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectGrmr.String(), grmr.String())
 }
+
+func TestMergeRulesClosure(t *testing.T) {
+	// Strange edge case
+	grammarString := `
+    Header -> header word word* (END | closeHeader | nl)
+  `
+	grmr, rdcr, err := New(grammarString)
+	assert.NotNil(t, rdcr)
+	assert.NoError(t, err)
+
+	expectedStr := `
+    Header -> header word word* END
+           -> header word word* closeHeader
+           -> header word word* nl
+    word*  -> word word*
+           ->
+`
+
+	expectGrmr, err := grammar.New(expectedStr)
+	assert.NoError(t, err)
+	assert.Equal(t, expectGrmr.String(), grmr.String())
+}

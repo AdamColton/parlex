@@ -2,9 +2,13 @@ package parlex
 
 // IsLeftRecursive will check if a grammar is left recursive.
 func IsLeftRecursive(grammar Grammar) bool {
-	checked := make(map[string]bool)
+	op := &lrOp{
+		Grammar: grammar,
+		checked: make(map[string]bool),
+	}
 	for _, nt := range grammar.NonTerminals() {
-		isLR, _ := checkLeftRecursion(grammar, nt, checked, make(map[string]bool))
+		op.stack = make(map[string]bool)
+		isLR, _ := op.check(nt)
 		if isLR {
 			return true
 		}
@@ -12,22 +16,27 @@ func IsLeftRecursive(grammar Grammar) bool {
 	return false
 }
 
-func checkLeftRecursion(g Grammar, s Symbol, checked, stack map[string]bool) (bool, bool) {
-	if checked[s.String()] {
+type lrOp struct {
+	Grammar
+	checked, stack map[string]bool
+}
+
+func (op *lrOp) check(s Symbol) (isLR, checkNext bool) {
+	if op.checked[s.String()] {
 		return false, false
 	}
 
-	prods := g.Productions(s)
+	prods := op.Productions(s)
 	if prods == nil {
 		// s is a terminal
-		checked[s.String()] = true // add to checked to avoid the lookup in the future
+		op.checked[s.String()] = true // add to checked to avoid the lookup in the future
 		return false, false
 	}
 
-	if stack[s.String()] {
+	if op.stack[s.String()] {
 		return true, false
 	}
-	stack[s.String()] = true
+	op.stack[s.String()] = true
 
 	retCheckNext := false
 	for i := prods.Iter(); i.Next(); {
@@ -36,14 +45,14 @@ func checkLeftRecursion(g Grammar, s Symbol, checked, stack map[string]bool) (bo
 			continue
 		}
 		for j, isLR, checkNext := i.Iter(), false, true; j.Next() && checkNext; {
-			isLR, checkNext = checkLeftRecursion(g, j.Symbol, checked, stack)
+			isLR, checkNext = op.check(j.Symbol)
 			if isLR {
 				return true, false
 			}
 		}
 	}
 
-	checked[s.String()] = true
-	stack[s.String()] = false
+	op.checked[s.String()] = true
+	op.stack[s.String()] = false
 	return false, retCheckNext
 }

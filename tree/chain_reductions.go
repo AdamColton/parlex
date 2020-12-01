@@ -1,10 +1,12 @@
 package tree
 
+// Chain two reductions so that the first will be called on the node, then the
+// second. If one of the reductions is nil, the other is returned.
 func Chain(r1, r2 Reduction) Reduction {
-	if r1==nil{
+	if r1 == nil {
 		return r2
 	}
-	if r2==nil{
+	if r2 == nil {
 		return r1
 	}
 	return func(node *PN) {
@@ -20,7 +22,7 @@ type Condition func(node *PN) bool
 // If allows a Chain to perform conditional logic
 func If(condition Condition, then, otherwise Reduction) Reduction {
 	return func(node *PN) {
-		if condition(node) {
+		if condition != nil && condition(node) {
 			if then != nil {
 				then(node)
 			}
@@ -74,7 +76,7 @@ func (r Reduction) PromoteGrandChildren() Reduction {
 	return Chain(r, PromoteGrandChildren)
 }
 
-// RemoveAll removes all child that match any symbol in symbols
+// RemoveAll removes all children that match any symbol in symbols
 func (r Reduction) RemoveAll(symbols ...string) Reduction {
 	return Chain(r, RemoveAll(symbols...))
 }

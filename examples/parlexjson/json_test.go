@@ -31,6 +31,9 @@ func TestJSON(t *testing.T) {
 	  ]
 	}`
 
+	temp, _ := parlex.New(lxr, prsr, grmrRdcr).Run(s)
+	println(temp.(*tree.PN).String())
+
 	tr1, err := runner.Run(s)
 	assert.NoError(t, err)
 

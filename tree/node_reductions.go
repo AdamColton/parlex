@@ -36,14 +36,27 @@ func (p *PN) GetIdx(cIdx int) (int, int, bool) {
 	return cIdx, l, cIdx >= 0 && cIdx < l
 }
 
-// RemoveChildren calls RemoveChild repeatedly for each index given. Note that
-// the relative positions may change so if you wanted to remove what were
-// initially indexes 1, 3 and 5, you would need to either call
-// RemoveChildren(5,3,1) or RemoveChildren(1,2,3)
+// RemoveChildren calls RemoveChild repeatedly for each index given.
 func (p *PN) RemoveChildren(cIdxs ...int) {
+	ln := len(p.C)
+	drop := make([]bool, ln)
 	for _, cIdx := range cIdxs {
-		p.RemoveChild(cIdx)
+		cIdx, _, ok := p.GetIdx(cIdx)
+		if !ok {
+			continue
+		}
+		if !drop[cIdx] {
+			drop[cIdx] = true
+			ln--
+		}
 	}
+	newC := make([]*PN, 0, ln)
+	for idx, skip := range drop {
+		if !skip {
+			newC = append(newC, p.C[idx])
+		}
+	}
+	p.C = newC
 }
 
 // RemoveChild remove the child at cIdx. If cIdx is negative, it will find the

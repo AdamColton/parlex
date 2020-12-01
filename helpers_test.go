@@ -1,10 +1,5 @@
 package parlex
 
-import (
-	"github.com/stretchr/testify/assert"
-	"testing"
-)
-
 type symbol string
 
 func (s symbol) String() string { return string(s) }
@@ -47,13 +42,14 @@ func (p productions) Iter() *ProductionsIterator {
 }
 
 type lx struct {
-	k symbol
-	v string
+	k    symbol
+	v    string
+	l, c int
 }
 
 func (l *lx) Kind() Symbol             { return l.k }
 func (l *lx) Value() string            { return l.v }
-func (l *lx) Pos() (line int, col int) { return 0, 0 }
+func (l *lx) Pos() (line int, col int) { return l.l, l.c }
 
 type testGrammar struct {
 	order       []Symbol
@@ -83,77 +79,12 @@ func (tg *testGrammar) reset() {
 	tg.order = nil
 }
 
-func TestLexemeString(t *testing.T) {
-	lxs := []Lexeme{
-		&lx{k: "int", v: "1"},
-		&lx{k: "op", v: "+"},
-		&lx{k: "int", v: "2"},
-		&lx{k: "op", v: "*"},
-		&lx{k: "int", v: "3"},
-	}
+type testLexer struct{}
 
-	expected := "[int: 1, op: +, int: 2, op: *, int: 3]"
-	assert.Equal(t, expected, LexemeString(lxs...))
-	assert.Equal(t, "int: 1", LexemeString(lxs[0]))
-	assert.Equal(t, "", LexemeString())
-}
+func (*testLexer) Lex(str string) []Lexeme { return nil }
 
-func TestIsRecursive(t *testing.T) {
-	g := &testGrammar{}
-	g.reset()
-	g.new("A")
-	g.add("B", "C")
-	g.add("x")
-	g.new("B")
-	g.add("y")
-	g.add("w")
-	g.new("C")
-	g.add("z")
-	g.add("A")
-	assert.False(t, IsLeftRecursive(g))
+var testErr = strErr("Test Error")
 
-	g.new("A")
-	g.add("B", "C")
-	g.add("x")
-	g.new("B")
-	g.add("Y")
-	g.new("C")
-	g.add("z")
-	g.new("Y")
-	g.add("A")
-	assert.True(t, IsLeftRecursive(g))
+type testParser struct{}
 
-	g.new("A")
-	g.add("B", "C")
-	g.add("x")
-	g.new("B")
-	g.add("w")
-	g.add()
-	g.new("C")
-	g.add("A")
-	g.add("a")
-	assert.True(t, IsLeftRecursive(g))
-}
-
-type lxErr struct {
-	*lx
-}
-
-func (l *lxErr) Error() string {
-	return "ERROR"
-}
-
-func TestLexErrors(t *testing.T) {
-	lxs := []Lexeme{
-		&lx{k: "int", v: "1"},
-		&lx{k: "op", v: "+"},
-		&lxErr{&lx{k: "int", v: "2"}},
-		&lx{k: "op", v: "*"},
-		&lx{k: "int", v: "3"},
-	}
-
-	errs := LexErrors(lxs)
-	if assert.Len(t, errs, 1) {
-		assert.Equal(t, "2", errs[0].Value())
-	}
-}
+func (*testParser) Parse([]Lexeme) ParseNode { return nil }

@@ -2,6 +2,7 @@ package parlexjson
 
 import (
 	"bytes"
+
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar/regexgram"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
@@ -31,14 +32,15 @@ const (
  		Object      -> lcb ( KeyVal MoreKeyVals* )? rcb
  		MoreKeyVals -> comma KeyVal
  		KeyVal      -> string colon Value
- 	`
+	 `
 	reduceRules = `
-		Value       PromoteSingleChild
-		Object      RemoveChildren(0, -1)               // remove { }
-		Array       RemoveChildren(0, -1)               // remove [ ]
-		KeyVal      PromoteChildValue(0).RemoveChild(0) // Promote key, remove :
-		MoreVals    ReplaceWithChild(1)
-		MoreKeyVals ReplaceWithChild(1)
+		Value PromoteSingleChild()
+		Object      RemoveChildren(0, -1)  // remove { }
+		Array       RemoveChildren(0, -1)  // remove [ ]
+		KeyVal      PromoteChildValue(0)   // Promote key
+					.RemoveChild(0) 		   // remove :
+		MoreVals    ReplaceWithChild(1)	   // MoreVals -> {, Val} ==> Val
+		MoreKeyVals ReplaceWithChild(1)	   // MoreKeyVals -> {, KeyVal} ==> KeyVal
 	`
 )
 

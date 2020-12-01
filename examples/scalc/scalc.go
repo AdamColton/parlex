@@ -2,13 +2,14 @@ package scalc
 
 import (
 	"fmt"
+	"math"
+	"strconv"
+
 	"github.com/adamcolton/parlex"
 	"github.com/adamcolton/parlex/grammar"
 	"github.com/adamcolton/parlex/lexer/simplelexer"
 	"github.com/adamcolton/parlex/parser/packrat"
 	"github.com/adamcolton/parlex/tree"
-	"math"
-	"strconv"
 )
 
 const lexerRules = `
@@ -125,10 +126,8 @@ func evalStack(node *tree.PN) []Pfloat {
 			out[i] = evalE(ch)
 		}
 		return out
-	default:
-		return []Pfloat{evalE(node)}
 	}
-	return nil
+	return []Pfloat{evalE(node)}
 }
 
 func evalSmp(op *tree.PN) {

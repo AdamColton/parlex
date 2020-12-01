@@ -88,8 +88,8 @@ func (p *Packrat) Parse(lexemes []parlex.Lexeme) parlex.ParseNode {
 		partials: make(map[treeMarker][]treePartial), // maps a marker to a treePartial looking for that marker
 		queued:   make(map[treeMarker]bool),
 		set:      set,
+		nonterms: make([]bool, set.Size()),
 	}
-	op.nonterms = make([]bool, set.Size())
 	for _, nonterm := range p.Grammar.NonTerminals() {
 		op.nonterms[op.set.Symbol(nonterm).Idx()] = true
 	}

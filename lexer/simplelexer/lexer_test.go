@@ -92,7 +92,37 @@ func TestLexDiscard(t *testing.T) {
 }
 
 func TestError(t *testing.T) {
-	var err parlex.LexError
-	err = &errLexeme{lexeme.String("Error").At(10, 10)}
-	assert.Error(t, err)
+	var lxErr parlex.LexError
+	lxErr = &errLexeme{lexeme.String("Error").At(10, 10)}
+	assert.Error(t, lxErr)
+
+	s := "this : a test :"
+	lxr, err := New(`
+    test
+    word /\w+/
+    space /\s+/ -
+  `)
+	assert.NoError(t, err)
+	lxs := lxr.Lex(s)
+	assert.Error(t, lxs[1].(error))
+	assert.Error(t, lxs[4].(error))
+}
+
+func TestEmptyEdgeCases(t *testing.T) {
+	lxr, err := New(`
+    test
+    word /\w+/
+    space /\s+/ -
+  `)
+	assert.NoError(t, err)
+
+	testCases := []string{
+		" ",
+		"",
+	}
+	for _, tc := range testCases {
+		lxs := lxr.Lex(tc)
+		assert.NotNil(t, lxs)
+		assert.Len(t, lxs, 0)
+	}
 }

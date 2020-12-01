@@ -1,8 +1,9 @@
 package tree
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReduce(t *testing.T) {
@@ -88,32 +89,32 @@ func TestRemoveChildValue(t *testing.T) {
 }
 
 func TestReplaceWithChild(t *testing.T) {
-  pn, _ := New(`
+	pn, _ := New(`
     P {
       lp: "("
       num: "6"
       rp: ")"
     }
   `)
-  pn.ReplaceWithChild(1)
-  assert.Equal(t, "6", pn.Value())
-  assert.Equal(t, "num", pn.Kind().String())
+	pn.ReplaceWithChild(1)
+	assert.Equal(t, "6", pn.Value())
+	assert.Equal(t, "num", pn.Kind().String())
 }
 
 func TestChildIs(t *testing.T) {
-  pn, _ := New(`
+	pn, _ := New(`
     P {
       lp: "("
       num: "6"
       rp: ")"
     }
   `)
-  assert.True(t, pn.ChildIs(-1,"rp"))
-  assert.False(t, pn.ChildIs(0,"rp"))
+	assert.True(t, pn.ChildIs(-1, "rp"))
+	assert.False(t, pn.ChildIs(0, "rp"))
 }
 
 func TestPromoteChildrenOf(t *testing.T) {
-  pn, _ := New(`
+	pn, _ := New(`
     E {
       P {
         lp: "("
@@ -123,13 +124,13 @@ func TestPromoteChildrenOf(t *testing.T) {
       foo:"bar"
     }
   `)
-  pn.PromoteChildrenOf(0)
-  assert.Equal(t, "lp", pn.C[0].Kind().String())
-  assert.Equal(t, "bar", pn.C[3].Value())
+	pn.PromoteChildrenOf(0)
+	assert.Equal(t, "lp", pn.C[0].Kind().String())
+	assert.Equal(t, "bar", pn.C[3].Value())
 }
 
 func TestPromoteGrandChildren(t *testing.T) {
-  pn, _ := New(`
+	pn, _ := New(`
     E {
       P {
         lp: "("
@@ -144,13 +145,13 @@ func TestPromoteGrandChildren(t *testing.T) {
       }
     }
   `)
-  pn.PromoteGrandChildren()
-  assert.Equal(t, "lp", pn.C[0].Kind().String())
-  assert.Equal(t, "7", pn.C[4].Value())
+	pn.PromoteGrandChildren()
+	assert.Equal(t, "lp", pn.C[0].Kind().String())
+	assert.Equal(t, "7", pn.C[4].Value())
 }
 
-func TestMerge(t *testing.T){
-  pn, _ := New(`
+func TestMerge(t *testing.T) {
+	pn, _ := New(`
     E {
       P {
         lp: "("
@@ -171,30 +172,57 @@ func TestMerge(t *testing.T){
     }
   `)
 
-  r1 := Reducer{
-    "P": RemoveChildren(0,1),
-  }
-  r1.Add("foo", PromoteChild(0))
-  assert.True(t, r1.Can(pn.C[0]))
-  assert.False(t, r1.Can(pn))
+	r1 := Reducer{
+		"P": RemoveChildren(0, 2),
+	}
+	r1.Add("foo", PromoteChild(0))
+	assert.True(t, r1.Can(pn.C[0]))
+	assert.False(t, r1.Can(pn))
 
-  r2 := Reducer{
-    "P": ReplaceWithChild(0),
-    "foo2": RemoveChild(0),
-  }
+	r2 := Reducer{
+		"P":    ReplaceWithChild(0),
+		"foo2": RemoveChild(0),
+	}
 
-  r := Merge(r1,r2)
-  pn = r.Reduce(pn).(*PN)
-  if assert.Len(t, pn.C, 4){
-    assert.Equal(t, "6", pn.C[0].Value())
-    assert.Equal(t, "bar", pn.C[1].Value())
-    assert.Equal(t, "7", pn.C[2].Value())
-    assert.Equal(t, "foo2 val", pn.C[3].Value())
+	r := Merge(r1, r2)
+	pn = r.Reduce(pn).(*PN)
+	if assert.Len(t, pn.C, 4) {
+		assert.Equal(t, "6", pn.C[0].Value())
+		assert.Equal(t, "bar", pn.C[1].Value())
+		assert.Equal(t, "7", pn.C[2].Value())
+		assert.Equal(t, "foo2 val", pn.C[3].Value())
+	}
+}
+
+func TestRemoveChildren(t *testing.T) {
+	pn, _ := New(`
+  P {
+    A:"A"
+    B:"B"
+    C:"C"
+    D:"D"
+    E:"E"
+    F:"F"
   }
+  `)
+
+	got := Reducer{
+		"P": RemoveChildren(0, 2),
+	}.Reduce(pn).(*PN)
+	assert.Len(t, got.C, 4)
+	assert.Equal(t, "B", got.C[0].Value())
+	assert.Equal(t, "D", got.C[1].Value())
+
+	got = Reducer{
+		"P": RemoveChildren(0, -6),
+	}.Reduce(pn).(*PN)
+	assert.Len(t, got.C, 5)
+	assert.Equal(t, "B", got.C[0].Value())
+
 }
 
 func TestRemoveAll(t *testing.T) {
-  pn, _ := New(`
+	pn, _ := New(`
     E {
       P {
         lp: "("
@@ -209,9 +237,9 @@ func TestRemoveAll(t *testing.T) {
       }
     }
   `)
-  r := Reducer{
-    "P": RemoveAll("lp","rp"),
-  }
-  pn = r.Reduce(pn).(*PN)
-  assert.Len(t, pn.C[0].C, 1)
+	r := Reducer{
+		"P": RemoveAll("lp", "rp"),
+	}
+	pn = r.Reduce(pn).(*PN)
+	assert.Len(t, pn.C[0].C, 1)
 }
