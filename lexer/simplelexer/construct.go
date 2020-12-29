@@ -2,10 +2,11 @@ package simplelexer
 
 import (
 	"fmt"
-	"github.com/adamcolton/parlex"
-	"github.com/adamcolton/parlex/symbol/setsymbol"
 	"regexp"
 	"strings"
+
+	"github.com/adamcolton/parlex"
+	"github.com/adamcolton/parlex/symbol/setsymbol"
 )
 
 // DefaultErrorString is the value that will be assigned to any lex errors
@@ -36,6 +37,14 @@ func New(definitions ...string) (*Lexer, error) {
 	}
 
 	return l, nil
+}
+
+func Must(definitions ...string) *Lexer {
+	l, err := New(definitions...)
+	if err != nil {
+		panic(err)
+	}
+	return l
 }
 
 // InsertStart will insert a lexeme at the start of any results. This can be

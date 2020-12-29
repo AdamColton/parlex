@@ -1,9 +1,10 @@
 package scalc
 
 import (
+	"testing"
+
 	"github.com/adamcolton/parlex/tree"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestLexer(t *testing.T) {
