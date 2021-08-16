@@ -10,6 +10,30 @@ type prog struct {
 	code     []byte
 }
 
+func (p *prog) optimize() {
+	w := &wrapper{
+		slice: p.code,
+	}
+	for !w.done() {
+		i := w.inst()
+		switch i {
+		case i_branch, i_jump:
+			reset := w.idx - 1
+			to := w.idxUint32()
+			nextI := inst(w.slice[to])
+			if nextI == i_jump {
+				nextJmp := readUint32(w.slice, to+1)
+				setUint32(w.slice, reset+1, nextJmp)
+				w.idx = reset // go back on next pass and see if we're pointing to another jump
+			}
+		case i_match, i_inc:
+			w.idx += 4
+		case i_match_range, i_set_rv, i_set_rr, i_ck_lt_rv, i_ck_gte_rv:
+			w.idx += 8
+		}
+	}
+}
+
 type runOp struct {
 	p          prog
 	h          hash.Hash64

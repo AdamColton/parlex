@@ -43,12 +43,7 @@ func (s *workingState) cp() {
 
 func (s *workingState) set(r, v uint32) {
 	s.cp()
-	idx := r * 4
-	for i := uint32(0); i < 4; i++ {
-		b := byte(v)
-		v >>= 8
-		s.mut[idx+i] = b
-	}
+	setUint32(s.mut, r*4, v)
 }
 
 func (s *workingState) inc(r uint32) {

@@ -244,7 +244,7 @@ func (mmn minmaxNode) String() string {
 }
 
 func (mmn minmaxNode) Tree(ind string) string {
-	return fmt.Sprintf("%sMin(%d, %d) {\n%s%s}\n", ind, mmn.min, mmn.max, mmn.child.Tree(ind+"\t"), ind)
+	return fmt.Sprintf("%sMinMax(%d, %d) {\n%s%s}\n", ind, mmn.min, mmn.max, mmn.child.Tree(ind+"\t"), ind)
 }
 
 type anyNode struct{}
@@ -277,4 +277,22 @@ func (omn oneOrMoreNode) String() string {
 
 func (omn oneOrMoreNode) Tree(ind string) string {
 	return fmt.Sprintf("%sOneOrMore{\n%s%s}\n", ind, omn.child.Tree(ind+"\t"), ind)
+}
+
+type oneOrZeroNode struct {
+	child node
+}
+
+func (ozn oneOrZeroNode) build(b *builder) {
+	db := b.defer_branch()
+	ozn.child.build(b)
+	db()
+}
+
+func (ozn oneOrZeroNode) String() string {
+	return ozn.child.String() + "?"
+}
+
+func (ozn oneOrZeroNode) Tree(ind string) string {
+	return fmt.Sprintf("%sOneOrZero{\n%s%s}\n", ind, ozn.child.Tree(ind+"\t"), ind)
 }

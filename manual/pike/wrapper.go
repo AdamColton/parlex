@@ -48,3 +48,11 @@ func readUint32(s []byte, idx uint32) uint32 {
 		uint32(s[idx+2])<<(8*2) +
 		uint32(s[idx+3])<<(8*3)
 }
+
+func setUint32(s []byte, idx, val uint32) {
+	for i := uint32(0); i < 4; i++ {
+		b := byte(val)
+		val >>= 8
+		s[idx+i] = b
+	}
+}

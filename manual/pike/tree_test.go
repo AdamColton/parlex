@@ -257,3 +257,30 @@ func TestTreeOneOrMore(t *testing.T) {
 	op = p.run("caaat")
 	assert.Equal(t, 5, op.best)
 }
+
+func TestTreeOneOrZero(t *testing.T) {
+	n := rootNode{
+		manyNodes{
+			matchNode{}.match('c'),
+			oneOrZeroNode{
+				matchNode{}.match('a'),
+			},
+			matchNode{}.match('t'),
+		},
+	}
+	assert.Equal(t, "ca?t", n.String())
+
+	p := buildTree(n)
+
+	op := p.run("cat")
+	assert.Equal(t, 3, op.best)
+
+	op = p.run("ct")
+	assert.Equal(t, 2, op.best)
+
+	op = p.run("caat")
+	assert.Equal(t, -1, op.best)
+
+	op = p.run("caaat")
+	assert.Equal(t, -1, op.best)
+}

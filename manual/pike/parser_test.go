@@ -109,6 +109,14 @@ func TestParserTable(t *testing.T) {
 				{val: "caot", ln: -1},
 			},
 		},
+		"ca?t": {
+			inputs: []input{
+				{val: "cat"},
+				{val: "ct"},
+				{val: "caat", ln: -1},
+				{val: "caot", ln: -1},
+			},
+		},
 		"c(a*|o{2,3}){1,2}t": {},
 	}
 
@@ -125,6 +133,7 @@ func TestParserTable(t *testing.T) {
 			}
 			assert.Equal(t, exp, n.String())
 			p := buildTree(n)
+			p.optimize()
 			fmt.Fprintln(out, printCode(p.code))
 
 			for _, i := range tc.inputs {
