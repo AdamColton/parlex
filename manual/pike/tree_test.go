@@ -208,3 +208,25 @@ func TestTreeMinMax(t *testing.T) {
 	op = p.run("caaaat")
 	assert.Equal(t, -1, op.best)
 }
+
+func TestTreeAny(t *testing.T) {
+	n := rootNode{
+		manyNodes{
+			matchNode{}.match('c'),
+			anyNode{},
+			matchNode{}.match('t'),
+		},
+	}
+	assert.Equal(t, "c.t", n.String())
+
+	p := buildTree(n)
+
+	op := p.run("cat")
+	assert.Equal(t, 3, op.best)
+
+	op = p.run("cot")
+	assert.Equal(t, 3, op.best)
+
+	op = p.run("caat")
+	assert.Equal(t, -1, op.best)
+}

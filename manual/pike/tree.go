@@ -246,3 +246,17 @@ func (mmn minmaxNode) String() string {
 func (mmn minmaxNode) Tree(ind string) string {
 	return fmt.Sprintf("%sMin(%d, %d) {\n%s%s}\n", ind, mmn.min, mmn.max, mmn.child.Tree(ind+"\t"), ind)
 }
+
+type anyNode struct{}
+
+func (an anyNode) build(b *builder) {
+	b.wait()
+}
+
+func (an anyNode) String() string {
+	return "."
+}
+
+func (an anyNode) Tree(ind string) string {
+	return fmt.Sprintf("%sAny\n", ind)
+}

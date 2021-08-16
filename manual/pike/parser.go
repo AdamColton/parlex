@@ -39,6 +39,8 @@ func parse(str string) node {
 				op.pop()
 			}
 			op.pop()
+		case '.':
+			op.append(anyNode{})
 		default:
 			op.append(matchNode{}.match(op.R))
 		}

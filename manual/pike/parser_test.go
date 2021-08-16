@@ -93,6 +93,14 @@ func TestParserTable(t *testing.T) {
 				{val: "caot", ln: -1},
 			},
 		},
+		"c.t": {
+			inputs: []input{
+				{val: "cat"},
+				{val: "ct", ln: -1},
+				{val: "cot"},
+				{val: "caot", ln: -1},
+			},
+		},
 		"c(a*|o{2,3}){1,2}t": {},
 	}
 
