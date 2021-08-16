@@ -22,6 +22,10 @@ func parse(str string) node {
 			op.modLast(func(n node) node {
 				return kleeneStarNode{n}
 			})
+		case '+':
+			op.modLast(func(n node) node {
+				return oneOrMoreNode{n}
+			})
 		case '{':
 			op.minmax()
 		case '|':

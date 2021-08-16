@@ -260,3 +260,21 @@ func (an anyNode) String() string {
 func (an anyNode) Tree(ind string) string {
 	return fmt.Sprintf("%sAny\n", ind)
 }
+
+type oneOrMoreNode struct {
+	child node
+}
+
+func (omn oneOrMoreNode) build(b *builder) {
+	loc := b.loc()
+	omn.child.build(b)
+	b.branch(loc)
+}
+
+func (omn oneOrMoreNode) String() string {
+	return omn.child.String() + "+"
+}
+
+func (omn oneOrMoreNode) Tree(ind string) string {
+	return fmt.Sprintf("%sOneOrMore{\n%s%s}\n", ind, omn.child.Tree(ind+"\t"), ind)
+}

@@ -127,10 +127,5 @@ func (op *runOp) wrapper(c *cursor) *wrapper {
 }
 
 func (op *runOp) waitOps() {
-	// TODO: just flip
-	for sc := op.wait.pop(); sc != nil; sc = op.wait.pop() {
-		for _, c := range sc.cursors {
-			op.flow.add(sc.state, c, op.h)
-		}
-	}
+	op.flow, op.wait = op.wait, op.flow
 }
