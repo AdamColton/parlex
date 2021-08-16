@@ -73,6 +73,8 @@ func printCode(code []byte) string {
 			out = append(out, "groupS ", args)
 		case i_closeGroup:
 			out = append(out, "groupE\n")
+		case i_wait:
+			out = append(out, "  wait\n")
 		}
 	}
 

@@ -11,23 +11,23 @@ type prog struct {
 }
 
 type runOp struct {
-	p           prog
-	h           hash.Hash64
-	flow, match *cursors
-	r           *Reader
-	best        int
-	bestState   state
-	groups      map[uint32][][2]int
+	p          prog
+	h          hash.Hash64
+	flow, wait *cursors
+	r          *Reader
+	best       int
+	bestState  state
+	groups     map[uint32][][2]int
 }
 
 func (p prog) run(input string) *runOp {
 	op := &runOp{
-		p:     p,
-		h:     crc64.New(crc64.MakeTable(crc64.ECMA)),
-		r:     NewStringReader(input),
-		flow:  newCursors(),
-		match: newCursors(),
-		best:  -1,
+		p:    p,
+		h:    crc64.New(crc64.MakeTable(crc64.ECMA)),
+		r:    NewStringReader(input),
+		flow: newCursors(),
+		wait: newCursors(),
+		best: -1,
 	}
 	op.flow.add(newState(p.stateLen), &cursor{}, op.h)
 
@@ -42,7 +42,7 @@ func (op *runOp) run() {
 			op.best = op.r.Idx + op.r.Ln
 		}
 		op.r.Inc()
-		op.matchOps()
+		op.waitOps()
 	}
 
 }
@@ -56,12 +56,11 @@ func (op *runOp) flowOps() bool {
 		cursorLoop:
 			for {
 				i := w.inst()
-				if i < startFlowOps {
-					c.ip = w.idx - 1
-					op.match.add(s.state(), c, op.h)
-					break
-				}
 				switch i {
+				case i_wait:
+					c.ip = w.idx
+					op.wait.add(s.state(), c, op.h)
+					break cursorLoop
 				case i_branch:
 					cp := c.copy()
 					cp.ip = w.idx + 4
@@ -102,6 +101,17 @@ func (op *runOp) flowOps() bool {
 					c.partialGroups = c.partialGroups.prev
 					g.prev = c.groups
 					c.groups = g
+				case i_match:
+					expect := rune(w.idxUint32())
+					if op.r.R != expect {
+						break cursorLoop
+					}
+				case i_match_range:
+					start := rune(w.idxUint32())
+					end := rune(w.idxUint32())
+					if op.r.R < start || op.r.R > end {
+						break cursorLoop
+					}
 				}
 			}
 		}
@@ -116,27 +126,11 @@ func (op *runOp) wrapper(c *cursor) *wrapper {
 	}
 }
 
-func (op *runOp) matchOps() {
-	r := op.r.R
-	// run all matches
-	for sc := op.match.pop(); sc != nil; sc = op.match.pop() {
+func (op *runOp) waitOps() {
+	// TODO: just flip
+	for sc := op.wait.pop(); sc != nil; sc = op.wait.pop() {
 		for _, c := range sc.cursors {
-			w := op.wrapper(c)
-			switch w.inst() {
-			case i_match:
-				expect := rune(w.idxUint32())
-				if r == expect {
-					c.ip = w.idx
-					op.flow.add(sc.state, c, op.h)
-				}
-			case i_match_range:
-				start := rune(w.idxUint32())
-				end := rune(w.idxUint32())
-				if r >= start && r <= end {
-					c.ip = w.idx
-					op.flow.add(sc.state, c, op.h)
-				}
-			}
+			op.flow.add(sc.state, c, op.h)
 		}
 	}
 }

@@ -3,7 +3,7 @@ package parlex
 import (
 	"testing"
 
-	"github.com/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMustParser(t *testing.T) {

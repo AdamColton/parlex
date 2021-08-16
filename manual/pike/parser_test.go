@@ -1,6 +1,8 @@
 package pike
 
 import (
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,17 +93,23 @@ func TestParserTable(t *testing.T) {
 				{val: "caot", ln: -1},
 			},
 		},
+		"c(a*|o{2,3}){1,2}t": {},
 	}
+
+	out, _ := os.Create("out.txt")
 
 	for re, tc := range tt {
 		t.Run(re, func(t *testing.T) {
+			fmt.Fprintln(out, re)
 			n := parse(re)
+			fmt.Fprintln(out, n.Tree(""))
 			exp := tc.expected
 			if exp == "" {
 				exp = re
 			}
 			assert.Equal(t, exp, n.String())
 			p := buildTree(n)
+			fmt.Fprintln(out, printCode(p.code))
 
 			for _, i := range tc.inputs {
 				t.Run(i.val, func(t *testing.T) {

@@ -14,10 +14,21 @@ func (b *builder) close() *prog {
 	return b.prog
 }
 
+func (b *builder) wait() {
+	b.inst(i_wait)
+}
+
 func (b *builder) match(r rune) {
 	b.inst(i_match)
 	b.u32(uint32(r))
 }
+
+func (b *builder) match_range(start, end rune) {
+	b.inst(i_match_range)
+	b.u32(uint32(start))
+	b.u32(uint32(end))
+}
+
 func (b *builder) branch(pos uint32) {
 	b.inst(i_branch)
 	b.u32(pos)
@@ -76,11 +87,6 @@ func (b *builder) startGroup(idx uint32) {
 }
 func (b *builder) closeGroup() {
 	b.inst(i_closeGroup)
-}
-func (b *builder) match_range(start, end rune) {
-	b.inst(i_match_range)
-	b.u32(uint32(start))
-	b.u32(uint32(end))
 }
 
 func (b *builder) u32(v uint32) {

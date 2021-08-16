@@ -71,8 +71,10 @@ func (mn matchNode) matchRange(start, end rune) matchNode {
 func (mn matchNode) build(b *builder) {
 	for _, rs := range mn {
 		if len(rs) == 1 {
+			b.wait()
 			b.match(rs[0])
 		} else {
+			b.wait()
 			b.match_range(rs[0], rs[1])
 		}
 	}
