@@ -47,47 +47,6 @@ func (b *builder) accept() {
 	b.inst(i_accept)
 }
 
-func (b *builder) checkReg(reg uint32) {
-	if reg >= b.prog.stateLen {
-		b.prog.stateLen = reg + 1
-	}
-}
-
-func (b *builder) inc(reg uint32) {
-	b.checkReg(reg)
-	b.inst(i_inc)
-	b.u32(reg)
-}
-
-func (b *builder) set_rv(reg, val uint32) {
-	b.checkReg(reg)
-	b.inst(i_set_rv)
-	b.u32(reg)
-	b.u32(val)
-}
-
-func (b *builder) set_rr(to, from uint32) {
-	b.checkReg(to)
-	b.checkReg(from)
-	b.inst(i_set_rr)
-	b.u32(to)
-	b.u32(from)
-}
-
-func (b *builder) ck_lt_rv(reg, val uint32) {
-	b.checkReg(reg)
-	b.inst(i_ck_lt_rv)
-	b.u32(reg)
-	b.u32(val)
-}
-
-func (b *builder) ck_gte_rv(reg, val uint32) {
-	b.checkReg(reg)
-	b.inst(i_ck_gte_rv)
-	b.u32(reg)
-	b.u32(val)
-}
-
 func (b *builder) startGroup(idx uint32) {
 	b.inst(i_startGroup)
 	b.u32(idx)

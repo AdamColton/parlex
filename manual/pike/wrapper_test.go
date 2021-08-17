@@ -46,13 +46,3 @@ func TestReadUint32(t *testing.T) {
 		})
 	}
 }
-
-func TestState(t *testing.T) {
-	s := newState(100).workingState()
-	v := uint32(255)
-	s.set(4, v)
-	assert.Equal(t, v, s.readUint32(4))
-
-	s.inc(4)
-	assert.Equal(t, v+1, s.readUint32(4))
-}

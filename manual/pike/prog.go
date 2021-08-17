@@ -6,8 +6,7 @@ import (
 )
 
 type prog struct {
-	stateLen uint32
-	code     []byte
+	code []byte
 }
 
 func (p *prog) optimize() {
@@ -26,9 +25,9 @@ func (p *prog) optimize() {
 				setUint32(w.slice, reset+1, nextJmp)
 				w.idx = reset // go back on next pass and see if we're pointing to another jump
 			}
-		case i_match, i_inc:
+		case i_match, i_ck_lt_c, i_ck_gte_c:
 			w.idx += 4
-		case i_match_range, i_set_rv, i_set_rr, i_ck_lt_rv, i_ck_gte_rv:
+		case i_match_range:
 			w.idx += 8
 		}
 	}
@@ -40,7 +39,6 @@ type runOp struct {
 	flow, wait  *cursors
 	r           *Reader
 	best        int
-	bestState   state
 	bestGroups  groupID
 	counterRoot *counter
 	groupMap    *groupMap
@@ -57,14 +55,14 @@ func (p prog) run(input string) *runOp {
 		counterRoot: &counter{},
 		groupMap:    newGroupMap(),
 	}
-	op.flow.add(newState(p.stateLen), &cursor{}, op.h)
+	op.flow.add(cursor{})
 
 	op.run()
 	return op
 }
 
 func (op *runOp) run() {
-	for len(op.flow.keys) > 0 {
+	for len(op.flow.m) > 0 {
 		// run all until match
 		if op.flowOps() {
 			op.best = op.r.Idx + op.r.Ln
@@ -77,87 +75,65 @@ func (op *runOp) run() {
 
 func (op *runOp) flowOps() bool {
 	accept := false
-	for sc := op.flow.pop(); sc != nil; sc = op.flow.pop() {
-		for _, c := range sc.cursors {
-			s := sc.state.workingState()
-			w := op.wrapper(c)
-		cursorLoop:
-			for {
-				i := w.inst()
-				switch i {
-				case i_wait:
-					c.ip = w.idx
-					op.wait.add(s.state(), c, op.h)
+	for c, found := op.flow.pop(); found; c, found = op.flow.pop() {
+		w := op.wrapper(&c)
+	cursorLoop:
+		for {
+			i := w.inst()
+			switch i {
+			case i_wait:
+				c.ip = w.idx
+				op.wait.add(c)
+				break cursorLoop
+			case i_branch:
+				cp := c
+				cp.ip = w.idx + 4
+				op.flow.add(cp)
+				w.jump()
+			case i_jump:
+				w.jump()
+			case i_stop:
+				break cursorLoop
+			case i_accept:
+				accept = true
+				op.bestGroups = c.groups
+			case i_startGroup:
+				idx := w.idxUint32()
+				start := uint32(op.r.Idx + op.r.Ln)
+				c.partialGroups = op.groupMap.open(c.partialGroups, idx, start)
+			case i_closeGroup:
+				end := uint32(op.r.Idx + op.r.Ln)
+				c.partialGroups, c.groups = op.groupMap.close(c.partialGroups, c.groups, end)
+			case i_match:
+				expect := rune(w.idxUint32())
+				if op.r.R != expect {
 					break cursorLoop
-				case i_branch:
-					cp := c.copy()
-					cp.ip = w.idx + 4
-					op.flow.add(s.state(), cp, op.h)
-					w.jump()
-				case i_jump:
-					w.jump()
-				case i_stop:
+				}
+			case i_match_range:
+				start := rune(w.idxUint32())
+				end := rune(w.idxUint32())
+				if op.r.R < start || op.r.R > end {
 					break cursorLoop
-				case i_accept:
-					accept = true
-					op.bestState = s.state()
-					op.bestGroups = c.groups
-				case i_inc:
-					s.inc(w.idxUint32())
-				case i_set_rv:
-					s.set(w.idxUint32(), w.idxUint32())
-				case i_set_rr:
-					s.set(w.idxUint32(), s.readUint32(w.idxUint32()))
-				case i_ck_lt_rv:
-					r := s.readUint32(w.idxUint32())
-					v := w.idxUint32()
-					if !(r < v) {
-						break cursorLoop
-					}
-				case i_ck_gte_rv:
-					r := s.readUint32(w.idxUint32())
-					v := w.idxUint32()
-					if !(r >= v) {
-						break cursorLoop
-					}
-				case i_startGroup:
-					idx := w.idxUint32()
-					start := uint32(op.r.Idx + op.r.Ln)
-					c.partialGroups = op.groupMap.open(c.partialGroups, idx, start)
-				case i_closeGroup:
-					end := uint32(op.r.Idx + op.r.Ln)
-					c.partialGroups, c.groups = op.groupMap.close(c.partialGroups, c.groups, end)
-				case i_match:
-					expect := rune(w.idxUint32())
-					if op.r.R != expect {
-						break cursorLoop
-					}
-				case i_match_range:
-					start := rune(w.idxUint32())
-					end := rune(w.idxUint32())
-					if op.r.R < start || op.r.R > end {
-						break cursorLoop
-					}
-				case i_startCounter:
-					if c.counter == nil {
-						c.counter = op.counterRoot
-					} else {
-						c.counter = c.counter.newCounter()
-					}
-				case i_incCounter:
-					c.counter = c.counter.inc()
-				case i_closeCounter:
-					c.counter = c.counter.pop()
-				case i_ck_lt_c:
-					v := w.idxUint32()
-					if !(c.counter.val < v) {
-						break cursorLoop
-					}
-				case i_ck_gte_c:
-					v := w.idxUint32()
-					if !(c.counter.val >= v) {
-						break cursorLoop
-					}
+				}
+			case i_startCounter:
+				if c.counter == nil {
+					c.counter = op.counterRoot
+				} else {
+					c.counter = c.counter.newCounter()
+				}
+			case i_incCounter:
+				c.counter = c.counter.inc()
+			case i_closeCounter:
+				c.counter = c.counter.pop()
+			case i_ck_lt_c:
+				v := w.idxUint32()
+				if !(c.counter.val < v) {
+					break cursorLoop
+				}
+			case i_ck_gte_c:
+				v := w.idxUint32()
+				if !(c.counter.val >= v) {
+					break cursorLoop
 				}
 			}
 		}

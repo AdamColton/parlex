@@ -7,32 +7,16 @@ import (
 )
 
 func TestMatchWord(t *testing.T) {
-	// ca*|ot
+	// cat
 	b := newBuilder()
 
 	b.wait()
 	b.match('c')
-
-	oBranch := b.defer_branch()
-	b.set_rv(0, 1)
-	loc := b.loc()
 	b.wait()
 	b.match('a')
-	b.inc(1)
-	b.branch(loc)
-	jmp := b.defer_jump()
-
-	oBranch()
-	b.set_rv(0, 2)
-	loc = b.loc()
-	b.wait()
-	b.match('o')
-	b.inc(1)
-	b.branch(loc)
-
-	jmp()
 	b.wait()
 	b.match('t')
+
 	b.accept()
 	b.stop()
 
@@ -40,18 +24,9 @@ func TestMatchWord(t *testing.T) {
 
 	op := p.run("cat")
 	assert.Equal(t, 3, op.best)
-	assert.Equal(t, uint32(1), op.bestState.workingState().readUint32(0))
-	assert.Equal(t, uint32(1), op.bestState.workingState().readUint32(1))
 
 	op = p.run("cot")
-	assert.Equal(t, 3, op.best)
-	assert.Equal(t, uint32(2), op.bestState.workingState().readUint32(0))
-	assert.Equal(t, uint32(1), op.bestState.workingState().readUint32(1))
-
-	op = p.run("caaat")
-	assert.Equal(t, 5, op.best)
-	assert.Equal(t, uint32(1), op.bestState.workingState().readUint32(0))
-	assert.Equal(t, uint32(3), op.bestState.workingState().readUint32(1))
+	assert.Equal(t, -1, op.best)
 }
 
 func TestGroup(t *testing.T) {

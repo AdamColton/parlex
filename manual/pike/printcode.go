@@ -53,21 +53,6 @@ func printCode(code []byte) string {
 			out = append(out, "  stop\n")
 		case i_accept:
 			out = append(out, "accept\n")
-		case i_inc: // reg
-			args := fmt.Sprintf("$%d\n", w.idxUint32())
-			out = append(out, "   inc ", args)
-		case i_set_rv: // reg val
-			args := fmt.Sprintf("%d, $%d\n", w.idxUint32(), w.idxUint32())
-			out = append(out, "   set ", args)
-		case i_set_rr: // regTo regFrom
-			args := fmt.Sprintf("$%d, $%d\n", w.idxUint32(), w.idxUint32())
-			out = append(out, "   set ", args)
-		case i_ck_lt_rv: // reg val
-			args := fmt.Sprintf("$%d, %d\n", w.idxUint32(), w.idxUint32())
-			out = append(out, "    lt ", args)
-		case i_ck_gte_rv: // reg val
-			args := fmt.Sprintf("$%d, %d\n", w.idxUint32(), w.idxUint32())
-			out = append(out, "   gte ", args)
 		case i_startGroup:
 			args := fmt.Sprintf("%d\n", w.idxUint32())
 			out = append(out, "groupS ", args)
