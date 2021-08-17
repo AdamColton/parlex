@@ -98,25 +98,29 @@ func TestTreeGroup(t *testing.T) {
 
 	op := p.run("cat")
 	assert.Equal(t, 3, op.best)
-	g := op.groups[1][0]
+	gs := op.groupMap.toMap(op.bestGroups)
+	g := gs[1][0]
 	assert.Equal(t, 1, g[0])
 	assert.Equal(t, 2, g[1])
 
 	op = p.run("cot")
 	assert.Equal(t, 3, op.best)
-	g = op.groups[1][0]
+	gs = op.groupMap.toMap(op.bestGroups)
+	g = gs[1][0]
 	assert.Equal(t, 1, g[0])
 	assert.Equal(t, 2, g[1])
 
 	op = p.run("caat")
 	assert.Equal(t, 4, op.best)
-	g = op.groups[1][0]
+	gs = op.groupMap.toMap(op.bestGroups)
+	g = gs[1][0]
 	assert.Equal(t, 1, g[0])
 	assert.Equal(t, 3, g[1])
 
 	op = p.run("caaat")
 	assert.Equal(t, 5, op.best)
-	g = op.groups[1][0]
+	gs = op.groupMap.toMap(op.bestGroups)
+	g = gs[1][0]
 	assert.Equal(t, 1, g[0])
 	assert.Equal(t, 4, g[1])
 }

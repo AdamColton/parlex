@@ -41,7 +41,7 @@ type runOp struct {
 	r           *Reader
 	best        int
 	bestState   state
-	groups      map[uint32][][2]int
+	bestGroups  groupID
 	counterRoot *counter
 	groupMap    *groupMap
 }
@@ -101,7 +101,7 @@ func (op *runOp) flowOps() bool {
 				case i_accept:
 					accept = true
 					op.bestState = s.state()
-					op.groups = op.groupMap.toMap(c.groups)
+					op.bestGroups = c.groups
 				case i_inc:
 					s.inc(w.idxUint32())
 				case i_set_rv:

@@ -154,10 +154,10 @@ func TestParserTable(t *testing.T) {
 					if ln > -1 {
 						g := i.groups
 						if g != nil {
-							assert.Equal(t, g, op.groups)
+							assert.Equal(t, g, op.groupMap.toMap(op.bestGroups))
 						}
 					} else {
-						assert.Nil(t, op.groups)
+						assert.Equal(t, groupID(0), op.bestGroups)
 					}
 				})
 			}

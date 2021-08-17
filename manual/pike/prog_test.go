@@ -73,13 +73,15 @@ func TestGroup(t *testing.T) {
 
 	op := p.run("cat")
 	assert.Equal(t, 3, op.best)
-	g := op.groups[1][0]
+	gs := op.groupMap.toMap(op.bestGroups)
+	g := gs[1][0]
 	assert.Equal(t, 1, g[0])
 	assert.Equal(t, 2, g[1])
 
 	op = p.run("caaat")
 	assert.Equal(t, 5, op.best)
-	g = op.groups[1][0]
+	gs = op.groupMap.toMap(op.bestGroups)
+	g = gs[1][0]
 	assert.Equal(t, 1, g[0])
 	assert.Equal(t, 4, g[1])
 }
@@ -108,16 +110,18 @@ func TestMatchRange(t *testing.T) {
 
 	op := p.run("123")
 	assert.Equal(t, 3, op.best)
-	g := op.groups[1][0]
+	gs := op.groupMap.toMap(op.bestGroups)
+	g := gs[1][0]
 	assert.Equal(t, 0, g[0])
 	assert.Equal(t, 3, g[1])
 
 	op = p.run("123.4")
 	assert.Equal(t, 5, op.best)
-	g = op.groups[1][0]
+	gs = op.groupMap.toMap(op.bestGroups)
+	g = gs[1][0]
 	assert.Equal(t, 0, g[0])
 	assert.Equal(t, 3, g[1])
-	g = op.groups[2][0]
+	g = gs[2][0]
 	assert.Equal(t, 4, g[0])
 	assert.Equal(t, 5, g[1])
 }
