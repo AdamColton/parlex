@@ -75,6 +75,18 @@ func printCode(code []byte) string {
 			out = append(out, "groupE\n")
 		case i_wait:
 			out = append(out, "  wait\n")
+		case i_startCounter:
+			out = append(out, "countS\n")
+		case i_incCounter:
+			out = append(out, "countI\n")
+		case i_closeCounter:
+			out = append(out, "countE\n")
+		case i_ck_lt_c:
+			args := fmt.Sprintf("%d\n", w.idxUint32())
+			out = append(out, " c_gte ", args)
+		case i_ck_gte_c:
+			args := fmt.Sprintf("%d\n", w.idxUint32())
+			out = append(out, "  c_lt ", args)
 		}
 	}
 

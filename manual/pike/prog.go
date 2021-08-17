@@ -35,23 +35,25 @@ func (p *prog) optimize() {
 }
 
 type runOp struct {
-	p          prog
-	h          hash.Hash64
-	flow, wait *cursors
-	r          *Reader
-	best       int
-	bestState  state
-	groups     map[uint32][][2]int
+	p           prog
+	h           hash.Hash64
+	flow, wait  *cursors
+	r           *Reader
+	best        int
+	bestState   state
+	groups      map[uint32][][2]int
+	counterRoot *counter
 }
 
 func (p prog) run(input string) *runOp {
 	op := &runOp{
-		p:    p,
-		h:    crc64.New(crc64.MakeTable(crc64.ECMA)),
-		r:    NewStringReader(input),
-		flow: newCursors(),
-		wait: newCursors(),
-		best: -1,
+		p:           p,
+		h:           crc64.New(crc64.MakeTable(crc64.ECMA)),
+		r:           NewStringReader(input),
+		flow:        newCursors(),
+		wait:        newCursors(),
+		best:        -1,
+		counterRoot: &counter{},
 	}
 	op.flow.add(newState(p.stateLen), &cursor{}, op.h)
 
@@ -134,6 +136,26 @@ func (op *runOp) flowOps() bool {
 					start := rune(w.idxUint32())
 					end := rune(w.idxUint32())
 					if op.r.R < start || op.r.R > end {
+						break cursorLoop
+					}
+				case i_startCounter:
+					if c.counter == nil {
+						c.counter = op.counterRoot
+					} else {
+						c.counter = c.counter.newCounter()
+					}
+				case i_incCounter:
+					c.counter = c.counter.inc()
+				case i_closeCounter:
+					c.counter = c.counter.pop()
+				case i_ck_lt_c:
+					v := w.idxUint32()
+					if !(c.counter.val < v) {
+						break cursorLoop
+					}
+				case i_ck_gte_c:
+					v := w.idxUint32()
+					if !(c.counter.val >= v) {
 						break cursorLoop
 					}
 				}

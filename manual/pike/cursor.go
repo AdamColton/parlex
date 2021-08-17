@@ -6,6 +6,7 @@ type cursor struct {
 	ip            uint32
 	partialGroups *group
 	groups        *group
+	counter       *counter
 }
 
 func (c *cursor) copy() *cursor {

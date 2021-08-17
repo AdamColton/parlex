@@ -117,7 +117,14 @@ func TestParserTable(t *testing.T) {
 				{val: "caot", ln: -1},
 			},
 		},
-		"c(a*|o{2,3}){1,2}t": {},
+		"c(a*|o{2,3}){1,2}t": {
+			inputs: []input{
+				{val: "ct"},
+				{val: "caat"},
+				{val: "coot"},
+				{val: "cot", ln: -1},
+			},
+		},
 	}
 
 	out, _ := os.Create("out.txt")
@@ -146,10 +153,9 @@ func TestParserTable(t *testing.T) {
 					assert.Equal(t, ln, op.best)
 					if ln > -1 {
 						g := i.groups
-						if g == nil {
-							g = make(map[uint32][][2]int)
+						if g != nil {
+							assert.Equal(t, g, op.groups)
 						}
-						assert.Equal(t, g, op.groups)
 					} else {
 						assert.Nil(t, op.groups)
 					}

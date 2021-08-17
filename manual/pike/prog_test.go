@@ -121,3 +121,37 @@ func TestMatchRange(t *testing.T) {
 	assert.Equal(t, 4, g[0])
 	assert.Equal(t, 5, g[1])
 }
+
+func TestCounter(t *testing.T) {
+	b := newBuilder()
+	b.wait()
+	b.match('c')
+	b.startCounter()
+	loc := b.loc()
+	db := b.defer_branch()
+	b.ck_lt_c(3)
+	b.wait()
+	b.match('a')
+	b.incCounter()
+	b.jump(loc)
+	db()
+	b.ck_gte_c(2)
+	b.wait()
+	b.match('t')
+	b.accept()
+	b.stop()
+
+	p := b.close()
+
+	op := p.run("cat")
+	assert.Equal(t, -1, op.best)
+
+	op = p.run("caat")
+	assert.Equal(t, 4, op.best)
+
+	op = p.run("caaat")
+	assert.Equal(t, 5, op.best)
+
+	op = p.run("caaaat")
+	assert.Equal(t, -1, op.best)
+}

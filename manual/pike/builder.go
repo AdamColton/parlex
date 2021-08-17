@@ -33,6 +33,7 @@ func (b *builder) branch(pos uint32) {
 	b.inst(i_branch)
 	b.u32(pos)
 }
+
 func (b *builder) jump(pos uint32) {
 	b.inst(i_jump)
 	b.u32(pos)
@@ -41,6 +42,7 @@ func (b *builder) jump(pos uint32) {
 func (b *builder) stop() {
 	b.inst(i_stop)
 }
+
 func (b *builder) accept() {
 	b.inst(i_accept)
 }
@@ -56,12 +58,14 @@ func (b *builder) inc(reg uint32) {
 	b.inst(i_inc)
 	b.u32(reg)
 }
+
 func (b *builder) set_rv(reg, val uint32) {
 	b.checkReg(reg)
 	b.inst(i_set_rv)
 	b.u32(reg)
 	b.u32(val)
 }
+
 func (b *builder) set_rr(to, from uint32) {
 	b.checkReg(to)
 	b.checkReg(from)
@@ -69,24 +73,49 @@ func (b *builder) set_rr(to, from uint32) {
 	b.u32(to)
 	b.u32(from)
 }
+
 func (b *builder) ck_lt_rv(reg, val uint32) {
 	b.checkReg(reg)
 	b.inst(i_ck_lt_rv)
 	b.u32(reg)
 	b.u32(val)
 }
+
 func (b *builder) ck_gte_rv(reg, val uint32) {
 	b.checkReg(reg)
 	b.inst(i_ck_gte_rv)
 	b.u32(reg)
 	b.u32(val)
 }
+
 func (b *builder) startGroup(idx uint32) {
 	b.inst(i_startGroup)
 	b.u32(idx)
 }
+
 func (b *builder) closeGroup() {
 	b.inst(i_closeGroup)
+}
+
+func (b *builder) startCounter() {
+	b.inst(i_startCounter)
+}
+func (b *builder) incCounter() {
+	b.inst(i_incCounter)
+}
+
+func (b *builder) closeCounter() {
+	b.inst(i_closeCounter)
+}
+
+func (b *builder) ck_lt_c(val uint32) {
+	b.inst(i_ck_lt_c)
+	b.u32(val)
+}
+
+func (b *builder) ck_gte_c(val uint32) {
+	b.inst(i_ck_gte_c)
+	b.u32(val)
 }
 
 func (b *builder) u32(v uint32) {

@@ -180,14 +180,15 @@ type minNode struct {
 }
 
 func (mn minNode) build(b *builder) {
-	b.set_rv(mn.reg, 0)
+	b.startCounter()
 	loc := b.loc()
 	db := b.defer_branch()
 	mn.child.build(b)
-	b.inc(mn.reg)
+	b.incCounter()
 	b.jump(loc)
 	db()
-	b.ck_gte_rv(mn.reg, mn.val)
+	b.ck_gte_c(mn.val)
+	b.closeCounter()
 }
 
 func (mn minNode) String() string {
@@ -204,14 +205,15 @@ type maxNode struct {
 }
 
 func (mn maxNode) build(b *builder) {
-	b.set_rv(mn.reg, 0)
+	b.startCounter()
 	loc := b.loc()
 	db := b.defer_branch()
-	b.ck_lt_rv(mn.reg, mn.val)
+	b.ck_lt_c(mn.val)
 	mn.child.build(b)
-	b.inc(mn.reg)
+	b.incCounter()
 	b.jump(loc)
 	db()
+	b.closeCounter()
 }
 
 func (mn maxNode) String() string {
@@ -228,15 +230,16 @@ type minmaxNode struct {
 }
 
 func (mmn minmaxNode) build(b *builder) {
-	b.set_rv(mmn.reg, 0)
+	b.startCounter()
 	loc := b.loc()
 	db := b.defer_branch()
-	b.ck_lt_rv(mmn.reg, mmn.max)
+	b.ck_lt_c(mmn.max)
 	mmn.child.build(b)
-	b.inc(mmn.reg)
+	b.incCounter()
 	b.jump(loc)
 	db()
-	b.ck_gte_rv(mmn.reg, mmn.min)
+	b.ck_gte_c(mmn.min)
+	b.closeCounter()
 }
 
 func (mmn minmaxNode) String() string {
