@@ -4,8 +4,8 @@ import "hash"
 
 type cursor struct {
 	ip            uint32
-	partialGroups *group
-	groups        *group
+	partialGroups groupID
+	groups        groupID
 	counter       *counter
 }
 

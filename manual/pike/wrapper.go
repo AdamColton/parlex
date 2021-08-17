@@ -19,6 +19,11 @@ func (w *wrapper) idxUint32() uint32 {
 	return u
 }
 
+func (w *wrapper) setIdxUint32(v uint32) {
+	setUint32(w.slice, w.idx, v)
+	w.idx += 4
+}
+
 func (w *wrapper) readUint32(idx uint32) uint32 {
 	return readUint32(w.slice, idx)
 }

@@ -43,6 +43,7 @@ type runOp struct {
 	bestState   state
 	groups      map[uint32][][2]int
 	counterRoot *counter
+	groupMap    *groupMap
 }
 
 func (p prog) run(input string) *runOp {
@@ -54,6 +55,7 @@ func (p prog) run(input string) *runOp {
 		wait:        newCursors(),
 		best:        -1,
 		counterRoot: &counter{},
+		groupMap:    newGroupMap(),
 	}
 	op.flow.add(newState(p.stateLen), &cursor{}, op.h)
 
@@ -99,7 +101,7 @@ func (op *runOp) flowOps() bool {
 				case i_accept:
 					accept = true
 					op.bestState = s.state()
-					op.groups = c.groups.toMap()
+					op.groups = op.groupMap.toMap(c.groups)
 				case i_inc:
 					s.inc(w.idxUint32())
 				case i_set_rv:
@@ -120,13 +122,11 @@ func (op *runOp) flowOps() bool {
 					}
 				case i_startGroup:
 					idx := w.idxUint32()
-					start := op.r.Idx + op.r.Ln
-					c.partialGroups = c.partialGroups.open(idx, start)
+					start := uint32(op.r.Idx + op.r.Ln)
+					c.partialGroups = op.groupMap.open(c.partialGroups, idx, start)
 				case i_closeGroup:
-					g := c.partialGroups.close(op.r.Idx + op.r.Ln)
-					c.partialGroups = c.partialGroups.prev
-					g.prev = c.groups
-					c.groups = g
+					end := uint32(op.r.Idx + op.r.Ln)
+					c.partialGroups, c.groups = op.groupMap.close(c.partialGroups, c.groups, end)
 				case i_match:
 					expect := rune(w.idxUint32())
 					if op.r.R != expect {
