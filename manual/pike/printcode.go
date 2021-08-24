@@ -68,10 +68,10 @@ func printCode(code []byte) string {
 			out = append(out, "countE\n")
 		case i_ck_lt_c:
 			args := fmt.Sprintf("%d\n", w.idxUint32())
-			out = append(out, " c_gte ", args)
+			out = append(out, " c_lt ", args)
 		case i_ck_gte_c:
 			args := fmt.Sprintf("%d\n", w.idxUint32())
-			out = append(out, "  c_lt ", args)
+			out = append(out, "  c_gte ", args)
 		}
 	}
 

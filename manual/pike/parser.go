@@ -11,6 +11,13 @@ type parseOp struct {
 	*Reader
 }
 
+func compile(re string) *prog {
+	n := parse(re)
+	p := buildTree(n)
+	p.optimize()
+	return p
+}
+
 func parse(str string) node {
 	op := &parseOp{
 		cur:    rootNode{},

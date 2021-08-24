@@ -34,14 +34,14 @@ func (p *prog) optimize() {
 }
 
 type runOp struct {
-	p           prog
-	h           hash.Hash64
-	flow, wait  *cursors
-	r           *Reader
-	best        int
-	bestGroups  groupID
-	counterRoot *counter
-	groupMap    *groupMap
+	p                prog
+	h                hash.Hash64
+	prev, flow, wait *cursorNode
+	r                *Reader
+	best             int
+	bestGroups       groupID
+	counterRoot      *counter
+	groupMap         *groupMap
 }
 
 func (p prog) run(input string) *runOp {
@@ -49,20 +49,21 @@ func (p prog) run(input string) *runOp {
 		p:           p,
 		h:           crc64.New(crc64.MakeTable(crc64.ECMA)),
 		r:           NewStringReader(input),
-		flow:        newCursors(),
-		wait:        newCursors(),
+		prev:        &cursorNode{},
+		flow:        &cursorNode{},
+		wait:        &cursorNode{},
 		best:        -1,
 		counterRoot: &counter{},
 		groupMap:    newGroupMap(),
 	}
-	op.flow.add(cursor{})
+	op.prev.add(&cursor{})
 
 	op.run()
 	return op
 }
 
 func (op *runOp) run() {
-	for len(op.flow.m) > 0 {
+	for op.prev.self != nil && !op.r.Done() {
 		// run all until match
 		if op.flowOps() {
 			op.best = op.r.Idx + op.r.Ln
@@ -75,8 +76,17 @@ func (op *runOp) run() {
 
 func (op *runOp) flowOps() bool {
 	accept := false
-	for c, found := op.flow.pop(); found; c, found = op.flow.pop() {
-		w := op.wrapper(&c)
+	from := op.prev
+	for {
+		c, found := from.pop()
+		if !found {
+			if from == op.flow {
+				break
+			}
+			from = op.flow
+			continue
+		}
+		w := op.wrapper(c)
 	cursorLoop:
 		for {
 			i := w.inst()
@@ -86,10 +96,13 @@ func (op *runOp) flowOps() bool {
 				op.wait.add(c)
 				break cursorLoop
 			case i_branch:
-				cp := c
+				cp := *c
 				cp.ip = w.idx + 4
-				op.flow.add(cp)
+				op.flow.add(&cp)
 				w.jump()
+				c.ip = w.idx
+				op.flow.add(c)
+				break cursorLoop
 			case i_jump:
 				w.jump()
 			case i_stop:
@@ -149,5 +162,7 @@ func (op *runOp) wrapper(c *cursor) *wrapper {
 }
 
 func (op *runOp) waitOps() {
-	op.flow, op.wait = op.wait, op.flow
+	op.prev = op.wait
+	op.flow = &cursorNode{}
+	op.wait = &cursorNode{}
 }

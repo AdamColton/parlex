@@ -3,6 +3,7 @@ package pike
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,6 +44,7 @@ func TestParserTable(t *testing.T) {
 				{val: "a"},
 				{val: "bb"},
 				{val: "ba", ln: -1},
+				{val: "b", ln: -1},
 			},
 		},
 		"ca{2,3}t": {
@@ -125,6 +127,11 @@ func TestParserTable(t *testing.T) {
 				{val: "cot", ln: -1},
 			},
 		},
+		"a?a?a{2,2}": {
+			inputs: []input{
+				{val: "aa"},
+			},
+		},
 	}
 
 	out, _ := os.Create("out.txt")
@@ -163,4 +170,19 @@ func TestParserTable(t *testing.T) {
 			}
 		})
 	}
+}
+
+func BenchmarkPathological(b *testing.B) {
+	gen := func(i int) (string, string) {
+		re := strings.Repeat("a?", i) + fmt.Sprintf("a{%d,%d}", i, i)
+		str := strings.Repeat("a", i)
+		return re, str
+	}
+
+	i := 700
+	re, str := gen(i)
+	p := compile(re)
+	b.ResetTimer()
+	op := p.run(str)
+	assert.Equal(b, i, op.best)
 }
