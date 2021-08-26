@@ -92,16 +92,17 @@ func (op *runOp) flowOps() bool {
 			i := w.inst()
 			switch i {
 			case i_wait:
-				c.ip = w.idx
-				op.wait.add(c)
+				op.wait.add(c.setIP(w.idx))
 				break cursorLoop
 			case i_branch:
-				cp := *c
-				cp.ip = w.idx + 4
-				op.flow.add(&cp)
+				op.flow.add(&cursor{
+					ip:            w.idx + 4,
+					partialGroups: c.partialGroups,
+					groups:        c.groups,
+					counter:       c.counter,
+				})
 				w.jump()
-				c.ip = w.idx
-				op.flow.add(c)
+				op.flow.add(c.setIP(w.idx))
 				break cursorLoop
 			case i_jump:
 				w.jump()
@@ -113,10 +114,11 @@ func (op *runOp) flowOps() bool {
 			case i_startGroup:
 				idx := w.idxUint32()
 				start := uint32(op.r.Idx + op.r.Ln)
-				c.partialGroups = op.groupMap.open(c.partialGroups, idx, start)
+				pGID := op.groupMap.open(c.partialGroups, idx, start)
+				c = c.setGroups(pGID, c.groups)
 			case i_closeGroup:
 				end := uint32(op.r.Idx + op.r.Ln)
-				c.partialGroups, c.groups = op.groupMap.close(c.partialGroups, c.groups, end)
+				c = c.setGroups(op.groupMap.close(c.partialGroups, c.groups, end))
 			case i_match:
 				expect := rune(w.idxUint32())
 				if op.r.R != expect {
@@ -130,14 +132,14 @@ func (op *runOp) flowOps() bool {
 				}
 			case i_startCounter:
 				if c.counter == nil {
-					c.counter = op.counterRoot
+					c = c.setCounter(op.counterRoot)
 				} else {
-					c.counter = c.counter.newCounter()
+					c = c.setCounter(c.counter.newCounter())
 				}
 			case i_incCounter:
-				c.counter = c.counter.inc()
+				c = c.setCounter(c.counter.inc())
 			case i_closeCounter:
-				c.counter = c.counter.pop()
+				c = c.setCounter(c.counter.pop())
 			case i_ck_lt_c:
 				v := w.idxUint32()
 				if !(c.counter.val < v) {

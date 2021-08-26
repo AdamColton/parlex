@@ -7,6 +7,44 @@ type cursor struct {
 	partialGroups groupID
 	groups        groupID
 	counter       *counter
+	noMod         bool
+}
+
+func (c *cursor) setCounter(ctr *counter) *cursor {
+	if c.noMod {
+		return &cursor{
+			partialGroups: c.partialGroups,
+			groups:        c.groups,
+			counter:       ctr,
+		}
+	}
+	c.counter = ctr
+	return c
+}
+
+func (c *cursor) setIP(ip uint32) *cursor {
+	if c.noMod {
+		return &cursor{
+			ip:            ip,
+			partialGroups: c.partialGroups,
+			groups:        c.groups,
+			counter:       c.counter,
+		}
+	}
+	c.ip = ip
+	return c
+}
+
+func (c *cursor) setGroups(p, g groupID) *cursor {
+	if c.noMod {
+		return &cursor{
+			partialGroups: p,
+			groups:        g,
+			counter:       c.counter,
+		}
+	}
+	c.partialGroups, c.groups = p, g
+	return c
 }
 
 func (c *cursor) cmpr(c2 *cursor) int8 {
@@ -39,44 +77,6 @@ func (c *cursor) cmpr(c2 *cursor) int8 {
 	return -1
 }
 
-type cursors struct {
-	m     map[cursor]struct{}
-	slice []cursor
-	idx   int
-}
-
-func newCursors() *cursors {
-	return &cursors{
-		m: make(map[cursor]struct{}),
-	}
-}
-
-func (c *cursors) add(cur cursor) {
-	_, found := c.m[cur]
-	if !found {
-		c.m[cur] = struct{}{}
-		c.slice = append(c.slice, cur)
-	}
-}
-
-func (c *cursors) pop() (cur cursor, found bool) {
-	if c.idx >= len(c.slice) {
-		return
-	}
-	cur = c.slice[c.idx]
-	found = true
-	c.idx++
-	return
-}
-
-func (c *cursors) reset() {
-	c.idx = 0
-	c.slice = c.slice[:0]
-	for k := range c.m {
-		delete(c.m, k)
-	}
-}
-
 type cursorNode struct {
 	self             *cursor
 	children         [2]*cursorNode
@@ -87,6 +87,7 @@ func (cn *cursorNode) add(cur *cursor) bool {
 	if cn.self == nil {
 		cn.self = cur
 		cn.popVisit = true
+		cur.noMod = true
 		return true
 	}
 	c := cn.self.cmpr(cur)
@@ -111,7 +112,7 @@ func (cn *cursorNode) pop() (cur *cursor, found bool) {
 		}
 	}
 	if !found && cn.self != nil && !cn.popped {
-		cp := *(cn.self)
+		cp := *cn.self
 		cur = &cp
 		found = true
 		cn.popped = true
